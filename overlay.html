@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>The Late Block on X Overlay</title>
+<!--
+  Kem livestream overlay — 1920x1080, transparent background (OBS Browser Source).
+  URL params:  ?topic=Title&sub=Subtitle&kicker=Topic%201%20of%205  &ig=@handle  &theme=light (white bars; dark is default)
+               &ticker=0 (hide ticker)  &lt=0 (hide topic)  &bar=0 (hide bottom bar)  &logo=0 (hide Late Block logo panel)  &tether=0 (hide the Powered by Tether tag, top left)  &frame=0 (no side gutters)
+               &xbadge=0 (hide the Live on X pill, top right)  &clock=1 (show clock; off by default)  &pulse=0 (static LIVE dots)  &tz=Asia/Kuwait  &tzlabel=KWT (optional label; none by default)  &secs=1  &h24=1  &stores=0 (hide App Store / Google Play badges)  &preview=1 (test background)  &remote=0 (no ntfy remote)
+  Topic set (v17): &t1=Title&s1=Subtitle ... &t4=&s4=  &slot=1..4  &auto=SECONDS (auto-rotate; 0/off by default)
+  Keys (when the source is focused via Interact, local only): 1-4 = slot, Right/N = next, Left/P = prev
+  Live control: open control.html (same OBS, as a Custom Browser Dock) — it talks to this page
+  through BroadcastChannel('kem-overlay') + localStorage('kem_overlay_state').
+-->
+<style>
+@font-face{font-family:'KemInterTight';src:url('assets/fonts/InterTight.ttf') format('truetype');font-weight:100 900}
+@font-face{font-family:'KemInter';src:url('assets/fonts/Inter.ttf') format('truetype');font-weight:100 900}
+/* Flat, crisp, no shadows anywhere. Dark theme is default (v16); ?theme=light switches. */
+:root{--tk:1; --g:12px; --bh:160px; --tt:66px;
+  --gold-shine:linear-gradient(90deg,#C8921A 0%,#F5C542 18%,#FFE58A 32%,#F5C542 46%,#C8921A 60%,#F5C542 76%,#FFE58A 88%,#F5C542 100%);
+  --gold-txt:#A8740F;
+  --bg:#0B0B0C; --fg:#FFFFFF; --muted:#A1A1AA; --line:rgba(255,255,255,.12); --strip:#000000;
+  --up:#34C77B; --down:#FF5A52; --flat:#A1A1AA; --sym:#F5C542;
+}
+body.light{--bg:#FFFFFF; --fg:#0B0B0C; --muted:#46464F; --line:rgba(11,11,12,.10); --strip:#F4F4F5;
+  --up:#0A8A4A; --down:#D12F25; --flat:#71717A; --sym:#A8740F}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:transparent}
+body{font-family:'KemInterTight','Inter Tight','KemInter','Inter',system-ui,sans-serif;color:var(--fg);position:relative;-webkit-font-smoothing:antialiased}
+body.preview{background:#2b2a28}
+body.preview.bd{background:url(assets/preview_backdrop.jpg) center/cover}
+.ph{display:none}
+body.preview:not(.bd) .ph{display:flex;position:absolute;left:var(--g);right:var(--g);top:calc(var(--tt) + 3px);bottom:calc(var(--bh) + 3px);border:2px dashed rgba(255,255,255,.2);border-radius:18px;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font:500 34px 'KemInter',sans-serif}
+.shine{position:absolute;left:0;right:0;height:3px;background:var(--gold-shine)}
+
+/* ---------- TOP TICKER ---------- */
+#ticker{position:absolute;left:0;right:0;top:0;height:var(--tt);background:var(--bg);display:flex;align-items:center;transition:transform .5s ease}
+#ticker .shine{bottom:-3px}
+#ticker.hide{transform:translateY(-110%)}
+/* top-left: POWERED BY tether, white on an ink block (reads on both themes), flush in the band */
+#ticker .tt{flex:0 0 auto;height:100%;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:0 36px 0 30px;background:#0B0B0C}
+#ticker .tt span{font:600 14px/1 'KemInter',sans-serif;letter-spacing:.18em;color:#FFFFFF;white-space:nowrap;padding-top:2px}
+#ticker .tt img{height:32px;width:auto;display:block}
+body:not(.light) #ticker .tt{border-right:1px solid var(--line)}
+body.notether #ticker .tt{display:none}
+#ticker .bug{flex:0 0 auto;height:100%;display:flex;align-items:center;padding:0 18px 0 20px;border-right:1px solid var(--line)}
+body.noclock #ticker .bug{display:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+body.nopulse #xbadge .d{animation:none;opacity:1}
+@media (prefers-reduced-motion:reduce){body #xbadge .d{animation:none;opacity:1}}
+#clock{display:flex;align-items:baseline;gap:9px;padding-left:4px;white-space:nowrap}
+#clock .cl:empty{display:none}
+#clock .cl{font:600 14px 'KemInter',sans-serif;letter-spacing:.08em;color:var(--sym)}
+#clock .ct{font-weight:500;font-size:23px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--fg);display:inline-block;text-align:left}
+body.noclock #clock{display:none}
+#items{flex:1 1 auto;display:flex;justify-content:space-around;align-items:center;height:100%;overflow:hidden;white-space:nowrap}
+.it{display:flex;align-items:baseline;gap:calc(6px*var(--tk));padding:0;transition:opacity .4s}
+.it.stale{opacity:.55}
+.it .sym{font:600 max(14px,calc(14px*var(--tk))) 'KemInter',sans-serif;letter-spacing:.08em;color:var(--sym)}
+.it .px{font-weight:500;font-size:calc(23px*var(--tk));letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--fg)}
+.it .ch{font:600 max(14px,calc(15px*var(--tk))) 'KemInter',sans-serif;font-variant-numeric:tabular-nums}
+.ch.up{color:var(--up)} .ch.down{color:var(--down)} .ch.flat{color:var(--flat)}
+.px.flash{animation:flash .9s}
+@keyframes flash{0%{color:var(--sym)}100%{color:var(--fg)}}
+/* LIVE · Streaming exclusively on X: flush corner slot at the right end of the ticker band */
+#ticker .xt{flex:0 0 auto;height:100%;display:flex;align-items:stretch}
+/* full-height, flush corner block: confident X partnership slot (flat, no radius, no shadow) */
+#xbadge{display:flex;align-items:center;gap:13px;height:100%;padding:0 24px 0 22px;background:#0B0B0C;color:#fff}
+body:not(.light) #xbadge{background:#FFFFFF;color:#0B0B0C}
+#xbadge .d{width:14px;height:14px;border-radius:50%;background:#E5342B;animation:pulse 2s ease-in-out infinite}
+#xbadge .tx{font:800 18px/1.1 'KemInter',sans-serif;letter-spacing:.035em;white-space:nowrap}
+#xbadge .tx b{display:block;font-weight:800;font-size:14px;letter-spacing:.2em;color:#FF4A40;margin-bottom:2px}
+body:not(.light) #xbadge .tx b{color:#E5342B}
+#xbadge .sp{width:1px;height:36px;background:currentColor;opacity:.25}
+#xbadge img{height:34px;display:block}
+body.noxbadge #ticker .xt{display:none}
+body.scroll #items{justify-content:flex-start}
+body.scroll #track{display:flex;gap:56px;animation:marq 40s linear infinite;padding-left:40px}
+@keyframes marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+#track{display:contents}
+
+/* ---------- FRAME (slim side gutters so the video sits inside the overlay) ---------- */
+.gut{position:absolute;top:calc(var(--tt) + 3px);bottom:calc(var(--bh) + 3px);width:var(--g);background:var(--bg);transition:opacity .4s}
+.gut.l{left:0} .gut.r{right:0}
+body.noframe .gut,body.nobar .gut,body.notk .gut{opacity:0}
+
+/* ---------- BOTTOM BLOCK (one flush lower third) ---------- */
+#bbar{position:absolute;left:0;right:0;bottom:0;height:var(--bh);display:flex;align-items:stretch;background:var(--bg);color:var(--fg);
+  transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+#bbar .shine{top:-3px}
+body.nobar #bbar{transform:translateY(110%)}
+/* left: show logo panel spanning the block — "kem PRESENTS" / THE LATE BLOCK / "POWERED BY tether" */
+#showlogo{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:0 60px;border-right:1px solid var(--line)}
+#showlogo .kp{display:flex;align-items:center;gap:10px}
+#showlogo .kp img{height:24px;display:block}
+#showlogo .kp span{font:700 15px/1 'KemInter',sans-serif;letter-spacing:.22em;color:var(--fg);padding-top:2px}
+#showlogo .wm{height:92px;width:auto;display:block}
+body.nologo #showlogo{display:none}
+/* centre: topic gets the full height of the block */
+#lt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;padding:0 48px}
+#lt .txt{transition:opacity .4s}
+#lt.hide .txt{opacity:0}
+#lt .txt{min-width:0;width:100%}
+#lt .kicker{display:none;font:600 15px 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);margin-bottom:5px;min-height:18px}
+body:not(.light) #lt .kicker{color:#F5C542}
+#lt .title{font-weight:600;font-size:var(--tf,50px);line-height:1.05;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lt .sub{font-weight:400;font-size:24px;line-height:1.3;letter-spacing:-.01em;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lt .sub:empty{display:none}
+/* topic swap (v17): old text slides up and out (200ms), new text rises in (340ms). transform/opacity only = GPU, 60fps */
+#lt .txt{will-change:transform,opacity}
+#lt .txt.out{transform:translate3d(0,-18px,0);opacity:0;transition:transform .2s cubic-bezier(.4,0,1,1),opacity .2s linear}
+#lt .txt.pre{transform:translate3d(0,22px,0);opacity:0;transition:none}
+#lt .txt.inn{transition:transform .34s cubic-bezier(0,0,.2,1),opacity .34s linear}
+@media (prefers-reduced-motion:reduce){
+  #lt .txt.out{transform:none;transition:opacity .15s linear}
+  #lt .txt.pre{transform:none}
+  #lt .txt.inn{transition:opacity .15s linear}
+}
+/* right: the Kem unit — logo + tagline + Instagram, with the official store badges beside them */
+#kemu{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:40px;padding:0 48px 0 44px;border-left:1px solid var(--line)}
+#kemu .grp{display:flex;align-items:center;gap:26px}
+#kemu .kc{display:flex;flex-direction:column;align-items:flex-start}
+#kemu .kl{height:40px;display:block}
+#kemu .tg{font:500 17px/1 'KemInter',sans-serif;color:var(--muted);margin-top:11px;white-space:nowrap}
+#kemu .igb{display:flex;align-items:center;gap:10px}
+#kemu .igb img{width:28px;height:28px;display:block}
+#kemu .igb span{font-weight:600;font-size:21px;letter-spacing:0;white-space:nowrap}
+/* app store badges (official artwork, unmodified) */
+#kemu .stb{display:flex;flex-direction:column;gap:8px}
+#kemu .stb img{height:42px;width:auto;display:block}
+body.nostores #kemu .stb{display:none}
+</style></head>
+<body>
+<div class="ph">Google Meet video (window capture) goes here</div>
+
+<div id="ticker">
+  <div class="tt"><span>POWERED BY</span><img src="assets/tether_wordmark.svg" alt="Tether"></div>
+  <div class="bug"><span id="clock"><span class="cl" id="clockLbl"></span><span class="ct" id="clockTime"></span></span></div>
+  <div id="items"><div id="track"></div></div>
+  <div class="xt"><div id="xbadge"><span class="d"></span><span class="tx"><b>LIVE</b>STREAMING EXCLUSIVELY ON</span><span class="sp"></span><img src="assets/x_logo_white.svg" alt="X" class="xl"></div></div>
+  <div class="shine"></div>
+</div>
+
+<div class="gut l"></div><div class="gut r"></div>
+
+<div id="bbar">
+  <div class="shine"></div>
+  <div id="showlogo"><div class="kp"><img src="assets/kem_logo_ink.png" alt="kem" class="kpl"><span>PRESENTS</span></div><img src="assets/lb_stacked_ink.png" alt="The Late Block" class="wm"></div>
+  <div id="lt"><div class="txt"><div class="kicker" id="kicker"></div><div class="title" id="title"></div><div class="sub" id="sub"></div></div></div>
+  <div id="kemu">
+    <div class="grp"><div class="kc"><img src="assets/kem_logo_ink.png" alt="kem" class="kl"><div class="tg">Money moves where you do.</div></div>
+      <div class="stb"><img src="assets/appstore_badge_black.svg" alt="Download on the App Store"><img src="assets/googleplay_badge.svg" alt="Get it on Google Play"></div></div>
+    <div class="igb"><img src="assets/instagram_glyph.svg" alt="Instagram"><span id="ighandle"></span></div>
+  </div>
+</div>
+
+<script>
+const IG_HANDLE='@kem';   // Instagram handle shown in the bottom bar (control page can override live)
+(function(){
+'use strict';
+const Q=new URLSearchParams(location.search);
+if(Q.get('preview')==='1')document.body.classList.add('preview');
+if(Q.get('bd')==='1')document.body.classList.add('bd');
+document.getElementById('ighandle').textContent=Q.get('ig')||IG_HANDLE;
+if(Q.get('bar')==='0')document.body.classList.add('nobar');
+function setTheme(t){const L=t!=='dark';document.body.classList.toggle('light',L);
+  const sw=(sel,a,b)=>{const e=document.querySelector(sel);if(e)e.src=L?a:b};
+  sw('#showlogo .wm','assets/lb_stacked_ink.png','assets/lb_stacked_light.png');
+  sw('#showlogo .kpl','assets/kem_logo_ink.png','assets/kem_logo_white.png');
+  sw('#kemu .kl','assets/kem_logo_ink.png','assets/kem_logo_white.png');
+  sw('#xbadge .xl','assets/x_logo_white.svg','assets/x_logo.svg')}
+setTheme(Q.get('theme')||'dark');   // dark bars are the default (v16); ?theme=light for the white look
+if(Q.get('scroll')==='1')document.body.classList.add('scroll');
+if(Q.get('pulse')==='0')document.body.classList.add('nopulse');
+if(Q.get('tether')==='0')document.body.classList.add('notether');
+if(Q.get('frame')==='0')document.body.classList.add('noframe');
+
+/* ================= CLOCK (local time, offline-safe via Intl) ================= */
+(function clock(){
+  if(Q.get('clock')!=='1'){document.body.classList.add('noclock');return}   // clock is off by default (v10); ?clock=1 opts in
+  let tz=Q.get('tz')||'Asia/Kuwait';
+  try{new Intl.DateTimeFormat('en-US',{timeZone:tz})}catch(e){tz='Asia/Kuwait'}
+  const secs=Q.get('secs')==='1', h24=Q.get('h24')==='1';
+  const lbl=(Q.get('tzlabel')||'').trim().toUpperCase();   // no label by default; ?tzlabel=KWT adds one
+  document.getElementById('clockLbl').textContent=lbl;
+  const f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',second:secs?'2-digit':undefined,hour12:!h24,hourCycle:h24?'h23':undefined});
+  const el=document.getElementById('clockTime');
+  // reserve the widest possible string (e.g. "12:59:59 PM") so the box never changes width
+  const probe=new Date(Date.UTC(2026,0,1,12,59,59));
+  const wf=new Intl.DateTimeFormat('en-US',{timeZone:'UTC',hour:'numeric',minute:'2-digit',second:secs?'2-digit':undefined,hour12:!h24,hourCycle:h24?'h23':undefined});
+  const sizer=()=>{el.style.minWidth='';el.textContent=wf.format(probe).replace(/\u202f/g,' ');el.style.minWidth=Math.ceil(el.getBoundingClientRect().width)+'px'};
+  const upd=()=>{el.textContent=f.format(new Date()).replace(/\u202f/g,' ')};
+  sizer();upd();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{sizer();upd()});
+  const loop=()=>{upd();setTimeout(loop,1000-(Date.now()%1000)+15)};   // tick right after each second boundary
+  setTimeout(loop,1000-(Date.now()%1000)+15);
+})();
+
+/* ================= TICKER ================= */
+const ITEMS=[
+  {k:'BTC',  sym:'BTC',      fmt:v=>'$'+fmt(v,0)},
+  {k:'SOL',  sym:'SOL',      fmt:v=>'$'+fmt(v,2)},
+  {k:'HYPE', sym:'HYPE',     fmt:v=>'$'+fmt(v,2)},
+  {k:'XAUT', sym:'XAUT · GOLD', fmt:v=>'$'+fmt(v,2)},   // Tether Gold, labelled as gold (single item)
+  {k:'XAG',  sym:'SILVER',   fmt:v=>'$'+fmt(v,2)},
+  {k:'USDT', sym:'USDT/USD', fmt:v=>fmt(v,4)},
+];
+const CACHE_KEY='kem_ticker_cache_v2';
+let cache={};
+try{cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}')||{}}catch(e){cache={}}
+const ok=n=>typeof n==='number'&&Number.isFinite(n);
+function fmt(v,d){return v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function set(k,price,chg){
+  if(!ok(price)||price<=0)return;                 // never accept junk; keep last good value
+  const prev=cache[k];
+  cache[k]={p:price,c:ok(chg)?chg:(prev&&ok(prev.c)?prev.c:null),t:Date.now()};
+}
+function save(){try{localStorage.setItem(CACHE_KEY,JSON.stringify(cache))}catch(e){}}
+
+const track=document.getElementById('track');
+const els={};
+function build(){
+  const mk=()=>ITEMS.map(it=>{
+    const d=document.createElement('div');d.className='it';
+    d.innerHTML='<span class="sym">'+it.sym+'</span><span class="px">—</span><span class="ch flat"></span>';
+    track.appendChild(d);(els[it.k]=els[it.k]||[]).push(d);
+  });
+  mk(); if(document.body.classList.contains('scroll'))mk();   // duplicate for seamless marquee
+}
+function fit(){            // shrink ticker type if it ever overflows (never clip prices)
+  if(document.body.classList.contains('scroll'))return;
+  const box=document.getElementById('items');let k=1;document.documentElement.style.setProperty('--tk',k);
+  // keep at least ~12px of air around every item (not just "no overflow"), shrinking in small steps
+  const its=[...box.querySelectorAll('.it')];
+  const tight=()=>box.scrollWidth>box.clientWidth||its.reduce((a,e)=>a+e.getBoundingClientRect().width,0)+its.length*12>box.clientWidth;
+  while(tight()&&k>0.6){k-=0.01;document.documentElement.style.setProperty('--tk',k.toFixed(2))}
+}
+function render(){
+  const now=Date.now();
+  ITEMS.forEach(it=>{
+    const c=cache[it.k];
+    (els[it.k]||[]).forEach(d=>{
+      const px=d.children[1],ch=d.children[2];
+      if(!c||!ok(c.p)){px.textContent='—';ch.textContent='';ch.className='ch flat';return}
+      const txt=it.fmt(c.p);
+      if(px.textContent!==txt&&px.textContent!=='—'){px.classList.remove('flash');void px.offsetWidth;px.classList.add('flash')}
+      px.textContent=txt;
+      if(ok(c.c)){
+        const r=Math.round(c.c*100)/100;
+        const cls=r>0?'up':r<0?'down':'flat';
+        ch.className='ch '+cls;
+        ch.textContent=(r>0?'▲ ':r<0?'▼ ':'')+Math.abs(r).toFixed(2)+'%';
+      }else{ch.className='ch flat';ch.textContent=''}
+      d.classList.toggle('stale',now-c.t>15*60*1000);   // dim if no fresh data for 15 min
+    });
+  });
+  fit();
+}
+
+async function getJSON(url,ms){
+  const ac=new AbortController();const to=setTimeout(()=>ac.abort(),ms||12000);
+  try{const r=await fetch(url,{signal:ac.signal,cache:'no-store'});if(!r.ok)throw new Error(r.status);return await r.json()}
+  finally{clearTimeout(to)}
+}
+async function firstJSON(urls){
+  for(const u of urls){try{return await getJSON(u)}catch(e){console.warn('fail',u,e)}}
+  return null;
+}
+
+// 1) Crypto + Tether Gold + USDT — CoinGecko (keyless, CORS *)
+// Backoff: after a 429 or any error, wait 2, 4, 8 ... up to 15 minutes before asking that source again.
+// Last good values stay on screen the whole time (and survive reloads via localStorage).
+const BO={};
+function due(k){return !BO[k]||Date.now()>=BO[k].next}
+function okd(k){BO[k]={fail:0,next:0}}
+function bad(k,e){const f=((BO[k]&&BO[k].fail)||0)+1;const wait=Math.min(15*60e3,60e3*Math.pow(2,f))*(0.85+Math.random()*0.3);
+  BO[k]={fail:f,next:Date.now()+wait};console.warn(k,'failed ('+(e&&e.message||e)+'), retry in',Math.round(wait/1000),'s')}
+async function crypto(){
+  if(!due('cg'))return;
+  try{
+    const d=await getJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,hyperliquid,tether-gold,tether&vs_currencies=usd&include_24hr_change=true');
+    const m={bitcoin:'BTC',solana:'SOL',hyperliquid:'HYPE','tether-gold':'XAUT',tether:'USDT'};
+    let n=0;for(const id in m){const x=d&&d[id];if(x&&ok(x.usd)){set(m[id],x.usd,x.usd_24h_change);n++}}
+    if(n)okd('cg');else bad('cg','empty');
+  }catch(e){bad('cg',e)}
+}
+window.__kemBackoff=BO;
+
+// Daily reference snapshots (fawazahmed0 currency-api via jsDelivr, Cloudflare mirror) — keyless, CORS *
+const fxURL=tag=>['https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@'+tag+'/v1/currencies/usd.min.json',
+                  'https://'+tag+'.currency-api.pages.dev/v1/currencies/usd.min.json'];
+let fxLatest=null, fxPrev=null, fxAt=0;
+function ymd(d){return d.toISOString().slice(0,10)}
+async function fxDaily(){
+  if(Date.now()-fxAt<10*60*1000&&fxLatest&&fxPrev)return;
+  // jsDelivr's @latest can lag a day on some edges, so ask both mirrors and keep the newest date
+  const got=await Promise.all(fxURL('latest').map(u=>getJSON(u).catch(()=>null)));
+  const L=got.filter(x=>x&&x.usd&&x.date).sort((x,y)=>x.date<y.date?1:-1)[0]||null;
+  if(L&&L.usd){fxLatest=L;
+    const base=new Date(L.date+'T00:00:00Z');base.setUTCDate(base.getUTCDate()-1);
+    const P=await firstJSON(fxURL(ymd(base)));
+    if(P&&P.usd)fxPrev=P;
+    fxAt=Date.now();
+  }
+}
+const pctv=(a,b)=>ok(a)&&ok(b)&&b>0?(a/b-1)*100:null;
+const inv=v=>ok(v)&&v>0?1/v:null;
+
+// 2) Gold & silver spot — gold-api.com (keyless, CORS *), 24h change vs previous-day reference
+async function metalsFx(){
+  if(!due('metals'))return;
+  await fxDaily().catch(()=>{});
+  const prevXAU=fxPrev&&inv(fxPrev.usd.xau), prevXAG=fxPrev&&inv(fxPrev.usd.xag);
+  const [g,s]=await Promise.all([
+    getJSON('https://api.gold-api.com/price/XAU').catch(()=>null),
+    getJSON('https://api.gold-api.com/price/XAG').catch(()=>null)]);
+  let xau=g&&g.price, xag=s&&s.price;
+  if(ok(xau)||ok(xag))okd('metals');else bad('metals','no spot price');
+  if(!ok(xau)&&fxLatest)xau=inv(fxLatest.usd.xau);   // fallback: daily reference
+  if(!ok(xag)&&fxLatest)xag=inv(fxLatest.usd.xag);
+  set('XAU',xau,pctv(xau,prevXAU));
+  set('XAG',xag,pctv(xag,prevXAG));
+  // XAUT fallback: if CoinGecko has no fresh Tether Gold price, show spot gold in the XAUT · GOLD slot
+  const xt=cache.XAUT; if(!(xt&&ok(xt.p)&&Date.now()-xt.t<5*60*1000))set('XAUT',xau,pctv(xau,prevXAU));
+}
+
+async function tick(){
+  await crypto();await metalsFx().catch(()=>{});   // crypto first so XAUT prefers CoinGecko over the spot-gold fallback
+  save();render();
+}
+build();render();tick();
+setInterval(tick,60*1000);
+setInterval(render,30*1000);
+
+/* ================= LOWER THIRD / CONTROL ================= */
+const $=id=>document.getElementById(id);
+const STATE_KEY='kem_overlay_state';
+function fitTitle(){   // shrink the topic title (50px -> 30px) before it ever needs an ellipsis
+  const t=$('title');if(!t)return;let f=50;t.style.setProperty('--tf',f+'px');
+  const tw0=e=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width};
+  while(t.textContent&&tw0(t)>t.clientWidth-2&&f>30){f-=1;t.style.setProperty('--tf',f+'px')}
+  // subtitle: shrink 24px -> 17px before it ever needs an ellipsis
+  const u=$('sub');if(!u)return;let g=24;u.style.fontSize=g+'px';
+  // measure the real (sub-pixel) text width: scrollWidth rounds, which can still leave an ellipsis
+  const tw=()=>{const r=document.createRange();r.selectNodeContents(u);return r.getBoundingClientRect().width};
+  while(u.textContent&&tw()>u.clientWidth-2&&g>17){g-=0.5;u.style.fontSize=g+'px'}
+}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>fitTitle());
+const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+// which slot is live right now: fixed slot, or (auto-rotate) slot + whole intervals since the state was sent
+function curSlot(s){
+  const set=Array.isArray(s.set)?s.set:[];const order=[];set.forEach((x,i)=>{if(x&&x.t)order.push(i)});
+  if(!order.length||!(s.slot>=0))return -1;
+  let pos=order.indexOf(s.slot);if(pos<0)pos=0;
+  const a=+s.auto||0;if(a>0&&order.length>1){pos=(pos+Math.max(0,Math.floor((Date.now()-(s.ts||Date.now()))/(a*1000))))%order.length}
+  return order[pos];
+}
+function resolve(s){const i=curSlot(s);if(i>=0){const x=s.set[i];return {topic:x.t||'',sub:x.s||'',i}}return {topic:s.topic||'',sub:s.sub||'',i:-1}}
+let cur=null, swapTok=0;
+function setTopic(t,sub,anim){
+  const lt=$('lt'),txt=lt.querySelector('.txt');
+  if($('title').textContent===t&&$('sub').textContent===sub){fitTitle();return}
+  const tok=++swapTok;
+  const put=()=>{$('title').textContent=t;$('sub').textContent=sub;fitTitle()};
+  if(!anim||lt.classList.contains('hide')||document.hidden){txt.classList.remove('out','pre','inn');put();return}
+  txt.classList.remove('pre','inn');txt.classList.add('out');
+  setTimeout(()=>{if(tok!==swapTok)return;
+    put();txt.classList.remove('out');txt.classList.add('pre');void txt.offsetWidth;
+    requestAnimationFrame(()=>{if(tok!==swapTok)return;txt.classList.remove('pre');txt.classList.add('inn');
+      setTimeout(()=>{if(tok===swapTok)txt.classList.remove('inn')},400)});
+  },RM.matches?150:200);
+}
+function apply(s,anim){
+  if(!s)return;
+  cur=s;
+  const lt=$('lt');const r=resolve(s);
+  $('kicker').textContent='';
+  const showLT=s.lt!==false&&!!(r.topic||r.sub);
+  lt.classList.toggle('hide',!showLT);
+  setTopic(r.topic,r.sub,anim);
+  $('ticker').classList.toggle('hide',s.ticker===false);document.body.classList.toggle('notk',s.ticker===false);
+  if(s.theme&&!Q.get('theme'))setTheme(s.theme);
+  if(s.ig)document.getElementById('ighandle').textContent=s.ig;
+  if('bar' in s)document.body.classList.toggle('nobar',s.bar===false);
+  if('xbadge' in s)document.body.classList.toggle('noxbadge',s.xbadge===false);
+  if('logo' in s)document.body.classList.toggle('nologo',s.logo===false);
+  if('stores' in s)document.body.classList.toggle('nostores',s.stores===false);
+  if('clock' in s&&Q.get('clock')==='1')document.body.classList.toggle('noclock',s.clock===false);
+}
+// auto-rotate runs inside the overlay, so it keeps going even if the phone sleeps
+setInterval(()=>{if(cur&&+cur.auto>0){const r=resolve(cur);if(r.topic!==$('title').textContent||r.sub!==$('sub').textContent)setTopic(r.topic,r.sub,true)}},500);
+// keyboard (Streamlabs "Interact" window, or a focused browser): local-only switching inside the current set
+document.addEventListener('keydown',e=>{
+  if(!cur||!Array.isArray(cur.set))return;const order=[];cur.set.forEach((x,i)=>{if(x&&x.t)order.push(i)});if(!order.length)return;
+  let i=curSlot(cur);let pos=Math.max(0,order.indexOf(i));
+  if(/^[1-4]$/.test(e.key)){const k=+e.key-1;if(!cur.set[k]||!cur.set[k].t)return;i=k}
+  else if(e.key==='ArrowRight'||e.key==='n'||e.key==='N')i=order[(pos+1)%order.length];
+  else if(e.key==='ArrowLeft'||e.key==='p'||e.key==='P')i=order[(pos-1+order.length)%order.length];
+  else return;
+  const s={...cur,slot:i,lt:true,ts:Math.max(Date.now(),(cur.ts||0)+1)};
+  try{localStorage.setItem(STATE_KEY,JSON.stringify(s))}catch(_){}
+  apply(s,true);
+});
+// defaults from URL params
+if(Q.get('logo')==='0')document.body.classList.add('nologo');
+if(Q.get('stores')==='0')document.body.classList.add('nostores');
+if(Q.get('xbadge')==='0')document.body.classList.add('noxbadge');
+// sample topic set (edit on the control page; these are only samples)
+const SAMPLE_SET=[
+  {t:'Your money, on autopilot',s:'How AI agents could pay for things, and where Kem fits'},
+  {t:'Sending money home, simplified',s:'What makes a cross-border transfer fast, low-cost and clear'},
+  {t:'Digital dollars, explained',s:'What stablecoins are and why they matter for everyday payments'},
+  {t:'Spending abroad, without surprises',s:'Cards, currencies and fees: what to check before you travel'}];
+const urlSet=[1,2,3,4].map(n=>({t:Q.get('t'+n)||'',s:Q.get('s'+n)||''}));
+const hasUrlSet=urlSet.some(x=>x.t);
+const urlState={topic:Q.get('topic')||'',sub:Q.get('sub')||'',kicker:'',
+  set:hasUrlSet?urlSet:SAMPLE_SET.map(x=>({...x})),slot:Q.has('topic')?-1:Math.min(3,Math.max(0,(parseInt(Q.get('slot'),10)||1)-1)),
+  auto:Math.max(0,parseInt(Q.get('auto'),10)||0),ts:Date.now(),
+  lt:Q.get('lt')!=='0',ticker:Q.get('ticker')!=='0'};
+let saved=null;
+try{saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch(e){}
+// a URL with an explicit ?topic= or ?t1= wins over saved control state; otherwise resume last control state
+apply(Q.has('topic')||hasUrlSet||!saved?urlState:saved,false);
+
+try{const bc=new BroadcastChannel('kem-overlay');bc.onmessage=e=>{if(e.data&&e.data.type==='state')apply(e.data.state,true);if(e.data&&e.data.type==='ping')bc.postMessage({type:'pong'})}}catch(e){}
+window.addEventListener('storage',e=>{if(e.key===STATE_KEY&&e.newValue){try{apply(JSON.parse(e.newValue),true)}catch(_){}}});
+
+/* ================= REMOTE CONTROL (signed messages over ntfy.sh) ================= */
+const REMOTE={"topic": "kemlb_348451b98956ddf7cc39d227", "pub": {"key_ops": ["verify"], "ext": true, "kty": "EC", "x": "ef-09TNtuCsvlCg2U2FsVwBXuOEXoiz5Mbhwp3H_YRA", "y": "VSNlhHevfOdImN3qChKkYJfGpR9X3EyxRPt9c69p-54", "crv": "P-256"}};
+let lastTs=(saved&&saved.ts)||0, vkey=null;
+const enc=new TextEncoder(), unb64=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+async function verify(m){
+  try{const o=JSON.parse(m);if(!o||!o.s||!o.sig)return;
+    vkey=vkey||await globalThis.crypto.subtle.importKey('jwk',REMOTE.pub,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+    const good=await globalThis.crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},vkey,unb64(o.sig),enc.encode(JSON.stringify(o.s)));
+    if(!good||!(o.s.ts>lastTs))return; lastTs=o.s.ts;
+    try{localStorage.setItem(STATE_KEY,JSON.stringify(o.s))}catch(e){}
+    apply(o.s,true);
+  }catch(e){}
+}
+const NT='https://ntfy.sh/'+REMOTE.topic;
+async function pollAll(){try{const r=await fetch(NT+'/json?poll=1&since=12h',{cache:'no-store'});const t=await r.text();
+  for(const l of t.trim().split('\n')){if(!l)continue;const e=JSON.parse(l);if(e.event==='message')await verify(e.message)}}catch(e){}}
+if(Q.get('remote')!=='0'){
+  // live stream of signed messages; reconnects by itself after drops (error -> retry with backoff,
+  // silent stall -> watchdog, network back -> immediate reconnect), and re-polls so nothing is missed
+  let es=null, beat=Date.now(), tries=0, timer=null;
+  const RS={state:'connecting',reconnects:0};window.__kemRelay=RS;
+  const open=()=>{
+    clearTimeout(timer);try{es&&es.close()}catch(_){}
+    RS.state='connecting';es=new EventSource(NT+'/sse');
+    es.onopen=()=>{beat=Date.now();tries=0;RS.state='open'};
+    es.onmessage=ev=>{beat=Date.now();try{const e=JSON.parse(ev.data);if(e.event==='message')verify(e.message)}catch(_){}};
+    es.addEventListener('keepalive',()=>{beat=Date.now()});
+    es.onerror=()=>{try{es.close()}catch(_){}RS.state='retrying';const wait=Math.min(30000,2000*Math.pow(1.6,tries++));
+      clearTimeout(timer);timer=setTimeout(()=>{RS.reconnects++;pollAll();open()},wait)};
+  };
+  pollAll().then(open);
+  setInterval(()=>{if(Date.now()-beat>120000){beat=Date.now();RS.reconnects++;pollAll();open()}},15000);   // stalled stream
+  window.addEventListener('online',()=>{tries=0;RS.reconnects++;pollAll();open()});
+  setInterval(pollAll,60000);   // safety net
+}
+window.kemOverlay={apply,resolve,state:()=>cur,cache:()=>cache,tick};
+})();
+</script>
+</body></html>

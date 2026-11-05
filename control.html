@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Late Block on X: Control</title>
+<style>
+@font-face{font-family:'KemInter';src:url('assets/fonts/Inter.ttf') format('truetype');font-weight:100 900}
+*{box-sizing:border-box}
+body{margin:0;padding:14px;font:14px 'KemInter',system-ui,sans-serif;background:#141311;color:#FCF2E9}
+h1{font-size:15px;margin:0 0 10px;color:#D9A84E;letter-spacing:.06em;text-transform:uppercase}
+label{display:block;font-size:12px;opacity:.7;margin:8px 0 3px}
+input,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #3a3733;background:#201e1b;color:#FCF2E9;font:inherit}
+textarea{height:120px;resize:vertical}
+button{font:600 15px 'KemInter',sans-serif;border:0;border-radius:6px;padding:12px 14px;cursor:pointer;background:#2c2925;color:#FCF2E9;margin:4px 4px 0 0}
+button.go{background:#D9A84E;color:#141311}
+button.on{outline:2px solid #D9A84E}
+.row{display:flex;flex-wrap:wrap;align-items:center}
+/* topic set: 4 slots, one-tap Go */
+.slot{display:grid;grid-template-columns:28px 1fr 64px;gap:6px 8px;align-items:center;padding:8px;border:1px solid #2c2925;border-radius:8px;margin:6px 0}
+.slot.live{border-color:#D9A84E;background:#1d1a15}
+.slot .n{font:700 16px 'KemInter',sans-serif;color:#D9A84E;text-align:center;grid-row:span 2}
+.slot input{padding:7px}
+.slot button{grid-row:span 2;margin:0;height:100%;padding:0}
+.slot.live button{background:#D9A84E;color:#141311}
+#autoRow{gap:8px}#autoRow input[type=number]{width:80px}#autoRow label{margin:0;opacity:.85;font-size:13px}
+.hint{font-size:12px;opacity:.55;margin-top:6px}
+#status{font-size:12px;opacity:.65;margin-top:10px}
+hr{border:0;border-top:1px solid #2c2925;margin:14px 0}
+</style></head><body>
+<h1>The Late Block on X: control</h1>
+<div id="lock"><label>Passcode</label><input id="pw" type="password" autocomplete="current-password"><div class="row"><button id="unlock" class="go">Unlock</button></div><div id="lockmsg" style="font-size:12px;opacity:.7;margin-top:6px"></div><hr></div>
+<div id="app" style="display:none">
+
+<label>Topic set (4 slots): tap <b>Go</b> to put one on stream</label>
+<div id="slots"></div>
+<div class="row"><button id="prev">◀ Prev</button><button id="next" class="go">Next topic ▶</button><button id="saveSet">Save set</button></div>
+<div class="row" id="autoRow"><input type="checkbox" id="autoOn" style="width:auto"><label for="autoOn">Auto-rotate every</label><input type="number" id="autoSec" min="3" max="3600" value="90"><label>seconds</label></div>
+<div class="hint">Keys on a computer: 1–4 = Go, ← / → = Prev / Next, A = auto-rotate on/off.</div>
+
+<hr>
+<label>One-off topic (outside the set)</label><input id="t" placeholder="e.g. Your money, on autopilot">
+<label>Subtitle</label><input id="s" placeholder="e.g. How AI agents could pay for things, and where Kem fits">
+<input id="k" type="hidden">
+<div class="row"><button id="send" class="go">Show on stream</button><button id="toggleLT">Hide topic</button><button id="toggleTk">Hide ticker</button></div>
+
+
+<label>Instagram handle (bottom bar, right side)</label><input id="ig" placeholder="@kem"><div class="row"><button id="setIg">Update handle</button></div><div class="row"><button id="toggleLogo">Hide logo</button><button id="toggleBar">Hide bottom bar</button><button id="toggleX">Hide Live on X pill</button><button id="toggleStores">Hide app store badges</button><button id="toggleTheme">Theme: dark</button></div><div id="status">Waiting…</div></div>
+
+<script>
+const REMOTE={"topic": "kemlb_348451b98956ddf7cc39d227", "pub": {"key_ops": ["verify"], "ext": true, "kty": "EC", "x": "ef-09TNtuCsvlCg2U2FsVwBXuOEXoiz5Mbhwp3H_YRA", "y": "VSNlhHevfOdImN3qChKkYJfGpR9X3EyxRPt9c69p-54", "crv": "P-256"}, "enc": {"salt": "NjMhOlRZQdNO5Nx0QoQkfA==", "iv": "qW0KuJW5DrUQsCj1", "ct": "WAeqFy/zB7LskJ2Dt772ohxMF/011FieYbM2GkBmFo+W3+aXtPf2RY02eJ+e/rIZjDeunnEOEOHBWLA1lWgdZAJsWNT+Symb3M95qXFzLQhDKv60ARGBr+0zruTjQ+eE+Y7HgeXyDAs3phL/710Az9sEs5mAVWCWRdMWgOyC5TDVxNNcT5MYvfr3xPRcMqafj+/IDZY4AhM3S8wTUMZNrjEviX64h0+t/Xg21w97xo6obN/XAelH6dX2BYBrde5mMcv0iEt6GizqfRRtJGxxI12pf7zGaanAm3C4vtlN", "iter": 250000}};
+const STATE_KEY='kem_overlay_state', SET_KEY='kem_overlay_set_v1';
+let bc=null; try{bc=new BroadcastChannel('kem-overlay')}catch(e){}
+const $=id=>document.getElementById(id);
+let state; try{state=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch(e){}
+const SAMPLE_SET=[
+  {t:'Your money, on autopilot',s:'How AI agents could pay for things, and where Kem fits'},
+  {t:'Sending money home, simplified',s:'What makes a cross-border transfer fast, low-cost and clear'},
+  {t:'Digital dollars, explained',s:'What stablecoins are and why they matter for everyday payments'},
+  {t:'Spending abroad, without surprises',s:'Cards, currencies and fees: what to check before you travel'}];
+let SET; try{SET=JSON.parse(localStorage.getItem(SET_KEY)||'null')}catch(e){}
+if(!Array.isArray(SET)||SET.length!==4)SET=(state&&Array.isArray(state.set)&&state.set.length===4)?state.set:SAMPLE_SET.map(x=>({...x}));
+state=state||{topic:'',sub:'',kicker:'',lt:true,ticker:true,theme:'dark'};
+if(!Array.isArray(state.set)){state.set=SET;state.slot=0;state.auto=0}
+
+function push(){
+  state.ts=Date.now();
+  localStorage.setItem(STATE_KEY,JSON.stringify(state));   // fires 'storage' in other tabs/sources
+  if(bc)bc.postMessage({type:'state',state});
+  remotePush();
+  $('toggleLT').textContent=state.lt?'Hide topic':'Show topic';
+  $('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
+  const c=curSlot(state);$('status').textContent='Sent '+new Date().toLocaleTimeString()+': "'+(c>=0?SET[c].t:(state.topic||''))+'"'+(+state.auto>0?' · auto every '+state.auto+'s':'');
+}
+// ---- topic set: same slot maths as the overlay, so both always agree on what's live
+function order(){const o=[];SET.forEach((x,i)=>{if(x&&x.t)o.push(i)});return o}
+function curSlot(s){const o=order();if(!o.length||!(s.slot>=0))return -1;let p=o.indexOf(s.slot);if(p<0)p=0;
+  const a=+s.auto||0;if(a>0&&o.length>1)p=(p+Math.max(0,Math.floor((Date.now()-(s.ts||Date.now()))/(a*1000))))%o.length;return o[p]}
+function saveSet(){localStorage.setItem(SET_KEY,JSON.stringify(SET))}
+function drawSlots(){
+  const box=$('slots');box.innerHTML='';
+  SET.forEach((x,i)=>{const d=document.createElement('div');d.className='slot';d.id='slot'+(i+1);
+    d.innerHTML='<div class="n">'+(i+1)+'</div><input id="st'+(i+1)+'" placeholder="Title"><button id="go'+(i+1)+'">Go</button><input id="ss'+(i+1)+'" placeholder="Subtitle">';
+    box.appendChild(d);
+    const ti=d.querySelector('#st'+(i+1)),si=d.querySelector('#ss'+(i+1));ti.value=x.t||'';si.value=x.s||'';
+    ti.oninput=()=>{SET[i].t=ti.value;saveSet()};si.oninput=()=>{SET[i].s=si.value;saveSet()};
+    d.querySelector('button').onclick=()=>go(i);
+  });
+  markLive();
+}
+function markLive(){const c=curSlot(state);SET.forEach((_,i)=>{const d=$('slot'+(i+1));if(d)d.classList.toggle('live',i===c)})}
+setInterval(markLive,1000);
+function go(i){if(!SET[i]||!SET[i].t)return;
+  state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));state.slot=i;state.topic=SET[i].t;state.sub=SET[i].s||'';state.kicker='';state.lt=true;
+  $('t').value='';$('s').value='';push();markLive()}
+function step(d){const o=order();if(!o.length)return;let c=curSlot(state);let p=o.indexOf(c);if(p<0)p=d>0?-1:0;go(o[(p+d+o.length)%o.length])}
+$('next').onclick=()=>step(1); $('prev').onclick=()=>step(-1);
+$('saveSet').onclick=()=>{saveSet();state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));if(state.slot>=0){const c=curSlot(state);state.slot=c>=0?c:0}push();$('status').textContent+=' · set saved'};
+function setAuto(){const on=$('autoOn').checked,sec=Math.max(3,parseInt($('autoSec').value,10)||90);
+  const c=curSlot(state);state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));if(c>=0)state.slot=c;else if(state.slot<0)state.slot=order()[0]||0;
+  state.auto=on?sec:0;push();markLive()}
+$('autoOn').onchange=setAuto;$('autoSec').onchange=()=>{if($('autoOn').checked)setAuto()};
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;if($('app').style.display==='none')return;
+  if(/^[1-4]$/.test(e.key))go(+e.key-1);else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1);
+  else if(e.key==='a'||e.key==='A'){$('autoOn').checked=!$('autoOn').checked;setAuto()}});
+$('send').onclick=()=>{state.topic=$('t').value;state.sub=$('s').value;state.kicker='';state.slot=-1;state.auto=0;$('autoOn').checked=false;state.lt=true;push();markLive()};
+$('toggleLT').onclick=()=>{state.lt=!state.lt;push()};
+$('toggleTk').onclick=()=>{state.ticker=!state.ticker;push()};
+$('toggleBar').onclick=()=>{state.bar=state.bar===false;push();$('toggleBar').textContent=state.bar===false?'Show bottom bar':'Hide bottom bar'};
+$('setIg').onclick=()=>{let v=$('ig').value.trim();if(v&&v[0]!=='@')v='@'+v;state.ig=v;push()};
+$('toggleTheme').onclick=()=>{state.theme=(state.theme||'dark')==='dark'?'light':'dark';push();$('toggleTheme').textContent='Theme: '+state.theme};
+$('toggleX').onclick=()=>{state.xbadge=state.xbadge===false;push();$('toggleX').textContent=state.xbadge===false?'Show Live on X pill':'Hide Live on X pill'};
+$('toggleStores').onclick=()=>{state.stores=state.stores===false;push();$('toggleStores').textContent=state.stores===false?'Show app store badges':'Hide app store badges'};
+$('toggleLogo').onclick=()=>{state.logo=state.logo===false;push();$('toggleLogo').textContent=state.logo===false?'Show logo':'Hide logo'};
+$('ig').value=state.ig||'';
+function syncUI(){$('autoOn').checked=+state.auto>0;if(+state.auto>0)$('autoSec').value=state.auto;
+  $('toggleTheme').textContent='Theme: '+(state.theme||'dark');markLive()}
+drawSlots();syncUI();
+$('toggleLT').textContent=state.lt?'Hide topic':'Show topic';
+$('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
+if(bc){bc.onmessage=e=>{if(e.data&&e.data.type==='pong')$('status').textContent='Overlay connected ✓'};bc.postMessage({type:'ping'})}
+
+// ---- remote: decrypt signing key with passcode, publish signed state to ntfy ----
+let skey=null; const NT='https://ntfy.sh/'+REMOTE.topic, unb64=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+async function unlock(pw){
+  const e=REMOTE.enc, base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:unb64(e.salt),iterations:e.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const jwk=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(e.iv)},k,unb64(e.ct))));
+  skey=await crypto.subtle.importKey('jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+}
+let pushed=false;
+async function remotePush(){
+  if(!skey)return; pushed=true; const s={...state};
+  const sig=new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},skey,new TextEncoder().encode(JSON.stringify(s))));
+  try{const r=await fetch(NT,{method:'POST',body:JSON.stringify({s,sig:btoa(String.fromCharCode(...sig))})});
+    $('status').textContent+=r.ok?'  ✓ live':'  ✗ send failed ('+r.status+')'}catch(err){$('status').textContent+='  ✗ offline'}
+}
+async function pullLatest(){try{const t=await (await fetch(NT+'/json?poll=1&since=12h',{cache:'no-store'})).text();
+  const ls=t.trim().split('\n').filter(Boolean).map(JSON.parse).filter(e=>e.event==='message');if(!ls.length||pushed)return;
+  const o=JSON.parse(ls[ls.length-1].message);if(o&&o.s){state=o.s;
+  if(Array.isArray(state.set)&&state.set.length===4){SET=state.set.map(x=>({t:x.t||'',s:x.s||''}));saveSet();drawSlots()}else{state.set=SET;if(!(state.slot>=0))state.slot=-1}
+  syncUI();
+  $('toggleLT').textContent=state.lt?'Hide topic':'Show topic';$('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
+  const c=curSlot(state);$('status').textContent='Live now: "'+(c>=0?SET[c].t:(state.topic||''))+'"'}}catch(e){}}
+async function doUnlock(pw,remember){
+  try{await unlock(pw);$('lock').style.display='none';$('app').style.display='';if(remember)localStorage.setItem('kem_pw',pw);pullLatest()}
+  catch(e){$('lockmsg').textContent='Wrong passcode.';localStorage.removeItem('kem_pw')}}
+$('unlock').onclick=()=>doUnlock($('pw').value,true);
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')doUnlock($('pw').value,true)});
+if(localStorage.getItem('kem_pw'))doUnlock(localStorage.getItem('kem_pw'),false);
+</script></body></html>
