@@ -1,9 +1,9 @@
 # The Late Block on X: Streamlabs quick start
 
-You need: the overlay folder (`late_block_site_v18.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
+You need: the overlay folder (`late_block_site_v19.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
 
 ## 1. Unzip
-Unzip `late_block_site_v18.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
+Unzip `late_block_site_v19.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
 
 ## 2. Add the overlay
 1. In your scene, click **+** under Sources, then choose **Browser Source** and name it "Late Block overlay".
@@ -32,10 +32,10 @@ Dark bars are the default. To add options like the white look (section 6) while 
 - The control page talks to the overlay over a signed relay, so it works from any device with internet.
 
 ## 5. Centre of the bottom bar: Promo or Topic
-- By default, the centre shows the **Kem Card promo**: fanned Kem cards, a slowly turning globe, and "Get your AI travel card with Kem / Spend your USDT anywhere Visa is accepted. / Download Kem".
+- By default, the centre shows the **Kem Card promo**: fanned 3D Kem cards and a slowly turning Earth. It switches every 60 seconds between "Get your AI travel card with Kem / Spend your USDT and more, anywhere Visa is accepted." and "Get up to 5% cashback on Grok Bot with Kem / Pay for Grok Bot with your Kem card." (with little robots). Both end with "Download Kem".
 - At the top of the control page, tap **Promo (Kem Card)** or **Topic** to switch. It slides smoothly between the two.
 - Tapping **Go**, **Next** or **Prev** on a topic switches the centre to Topic automatically. Tap **Promo** to bring the card back.
-- To change the promo wording for a show, add it to the overlay link: `promo=Headline`, `promosub=Support line`, `promocta=Call to action` (leave one empty to hide that line).
+- To change the promo wording for a show, add it to the overlay link: `promo=Headline`, `promosub=Support line`, `promocta=Call to action` (leave one empty to hide that line). Message B: `promob=`, `promobsub=`, `promobcta=`. `promosec=30` changes the interval, `promopin=1` or `promopin=2` holds one message.
 
 ## 6. Four topics at a time
 - The control page has **4 slots**, each with a title and a subtitle. Type your 4 topics; they're saved on that device. The 4 that come prefilled are samples.
@@ -65,6 +65,6 @@ Add these after `overlay.html` with `?` for the first and `&` between them, e.g.
 - **Prices show "—" or look dim:** the price service is busy or offline. The overlay keeps the last good prices and retries by itself (waiting longer each time, up to 15 minutes). Check the computer's internet.
 - **Overlay not updating from the control page:** check the link doesn't contain `centre=` (that locks the centre). Then right-click the Browser Source → **Refresh**. It also reconnects by itself after a network drop.
 - **Overlay cut off at the edges, or looks soft/blurry:** set Settings → Video → Base (Canvas) Resolution to 1920×1080, then right-click the source → Transform → Reset Transform. Keep the source at Width 1920 / Height 1080. Don't resize it by dragging the corners. A low streaming bitrate can also make it look soft on X. Check Settings → Output (about 6,000–9,000 Kbps for 1080p).
-- **Globe not turning:** it falls back to a still picture if the video can't play. Everything else works the same.
+- **Globe not turning:** it falls back to a still picture if the Earth image can't load. Everything else works the same.
 - **Overlay is white:** tap **Theme** on the control page, or add `?theme=dark`.
 - **Guest video peeks out at the edges:** re-check the Meet source's position and size (12, 69 / 1896 × 848).

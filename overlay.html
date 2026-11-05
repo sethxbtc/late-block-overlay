@@ -8,7 +8,9 @@
                &xbadge=0 (hide the Live on X pill, top right)  &clock=1 (show clock; off by default)  &pulse=0 (static LIVE dots)  &tz=Asia/Kuwait  &tzlabel=KWT (optional label; none by default)  &secs=1  &h24=1  &stores=0 (hide App Store / Google Play badges)  &preview=1 (test background)  &remote=0 (no ntfy remote)
   Topic set (v17): &t1=Title&s1=Subtitle ... &t4=&s4=  &slot=1..4  &auto=SECONDS (auto-rotate; 0/off by default)
   Centre (v18): &centre=promo|topic  (promo = Kem Card panel, the default; a URL ?centre= overrides the control page)
-               &promo=Headline &promosub=Support line &promocta=Call to action  (empty value hides that line)  &globe=0 (static globe)
+               &promo=Headline &promosub=Support line &promocta=Call to action  (message A; empty value hides that line)  &globe=0 (still globe)
+  Promo (v19): two messages rotate (A = AI travel card, B = 5% cashback on Grok Bot, with little robots).  &promosec=60 (seconds per message; 0 = no rotation)
+               &promopin=1|2 (or a|b; pin one message)  &promob= &promobsub= &promobcta= (edit message B; a custom &promo= alone shows only A)
   Keys (when the source is focused via Interact, local only): 1-4 = slot, Right/N = next, Left/P = prev (these show the topic), C = promo/topic
   Live control: open control.html (same OBS, as a Custom Browser Dock) — it talks to this page
   through BroadcastChannel('kem-overlay') + localStorage('kem_overlay_state').
@@ -101,21 +103,54 @@ body.nologo #showlogo{display:none}
 #lt{flex:1 1 auto;min-width:0;display:grid;grid-template:100%/100%;align-items:center;padding:0 48px;overflow:hidden}
 #lt>.lyr{grid-area:1/1;min-width:0}
 #lt>.lyr.off{visibility:hidden;opacity:0;pointer-events:none}
-/* v18 centre promo: Kem Card fan + globe (flat, no shadows) */
-#promo{display:flex;align-items:center;gap:34px;height:100%}
-#promo .art{position:relative;flex:0 0 auto;width:300px;height:160px}
-#promo .globe{position:absolute;left:4px;top:7px;width:146px;height:146px;display:block;object-fit:contain}
-#promo .card{position:absolute;width:154px;height:auto;display:block;transform-origin:22% 92%;backface-visibility:hidden}
-#promo .c1{left:108px;top:42px;transform:rotate(-16deg)}
-#promo .c2{left:124px;top:36px;transform:rotate(-5deg)}
-#promo .c3{left:138px;top:33px;transform:rotate(6deg)}
-#promo .pTxt{min-width:0;flex:1 1 auto}
+/* v19 centre promo: real-looking 3D Kem cards + live Earth (canvas). Flat bar, no drop shadows on the bar itself */
+#promo{display:flex;align-items:center;gap:24px;height:100%;position:relative}
+#promo .art{position:relative;flex:0 0 auto;width:298px;height:160px;perspective:820px;perspective-origin:62% 38%}
+#promo .globe{position:absolute;left:-8px;top:6px;width:148px;height:148px;display:block}
+#promo .fan{position:absolute;left:104px;top:34px;width:190px;height:110px;transform-style:preserve-3d;
+  transform:rotateX(13deg) rotateY(-15deg);animation:fanSway 11s ease-in-out infinite alternate;will-change:transform}
+@keyframes fanSway{0%{transform:translate3d(0,1px,0) rotateX(15deg) rotateY(-21deg) rotateZ(-1.2deg)}
+  100%{transform:translate3d(0,-3px,0) rotateX(9deg) rotateY(-7deg) rotateZ(1deg)}}
+#promo .card{position:absolute;left:0;top:0;width:146px;height:92px;transform-style:preserve-3d;transform-origin:18% 96%}
+#promo .k1{transform:translate3d(0,9px,0) rotateZ(-15deg)}
+#promo .k2{transform:translate3d(17px,3px,10px) rotateZ(-4deg)}
+#promo .k3{transform:translate3d(34px,0,20px) rotateZ(7deg)}
+/* card body: stacked slabs behind the face = visible thickness; the gold core shows as a thin metallic edge */
+#promo .slab{position:absolute;inset:0;border-radius:6.5px;background:#18181a;transform:translateZ(calc(var(--z) * -1px))}
+#promo .slab.z1{--z:.6} #promo .slab.z2{--z:1.2;background:linear-gradient(135deg,#F5D27A,#9C7420 45%,#E9C35E 70%,#7A5A16)}
+#promo .slab.z3{--z:1.8} #promo .slab.z4{--z:2.4;background:#0c0c0d}
+#promo .face{position:absolute;inset:0;border-radius:6.5px;overflow:hidden;background:#0d0d0e url(assets/kem_card.png) center/100% 100% no-repeat;
+  box-shadow:inset 0 0 0 .7px rgba(255,216,128,.55),inset 0 1px 0 rgba(255,244,214,.55),inset 0 -1px 0 rgba(0,0,0,.6)}
+/* contact shadow only where a card lies on the card below (stays within the fan) */
+#promo .k2 .face,#promo .k3 .face{box-shadow:inset 0 0 0 .7px rgba(255,216,128,.55),inset 0 1px 0 rgba(255,244,214,.55),inset 0 -1px 0 rgba(0,0,0,.6),-3px 3px 5px rgba(0,0,0,.6)}
+#promo .face::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(150deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.05) 22%,rgba(0,0,0,0) 40%,rgba(255,255,255,.07) 58%,rgba(0,0,0,0) 72%,rgba(0,0,0,.28) 100%) 0 0/220% 220%;
+  animation:gloss 11s ease-in-out infinite alternate}
+@keyframes gloss{0%{background-position:0% 0%}100%{background-position:70% 60%}}
+#promo .sheen{position:absolute;top:-30%;bottom:-30%;left:-60%;width:80%;
+  background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.05) 30%,rgba(255,250,235,.34) 50%,rgba(255,226,150,.10) 62%,rgba(255,255,255,0) 100%);
+  mix-blend-mode:screen;transform:translate3d(-40%,0,0) skewX(-12deg);animation:sheen 6s cubic-bezier(.45,0,.25,1) infinite}
+#promo .k1 .sheen{animation-delay:-.35s} #promo .k2 .sheen{animation-delay:-.2s} #promo .k3 .sheen{animation-delay:0s}
+@keyframes sheen{0%,45%{transform:translate3d(-40%,0,0) skewX(-12deg)}100%{transform:translate3d(330%,0,0) skewX(-12deg)}}
+@media (prefers-reduced-motion:reduce){#promo .fan,#promo .sheen,#promo .face::before,#bots .bot,#bots .bot .ey{animation:none}}
+#promo .pTxt{min-width:0;flex:1 1 auto;transition:transform .5s cubic-bezier(0,0,.2,1),opacity .5s linear}
+#promo .pTxt.pout{opacity:0;transform:translate3d(0,-14px,0);transition:transform .4s cubic-bezier(.4,0,1,1),opacity .4s linear}
+#promo .pTxt.ppre{opacity:0;transform:translate3d(0,16px,0);transition:none}
 #promo .pHead{font-weight:700;font-size:var(--pf,40px);line-height:1.05;letter-spacing:-.03em;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #promo .pSub{font-weight:400;font-size:var(--psf,21px);line-height:1.3;letter-spacing:-.01em;color:var(--muted);margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #promo .pSub:empty{display:none}
 #promo .pCta{display:inline-block;margin-top:11px;font:700 16px/1 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);white-space:nowrap}
 body:not(.light) #promo .pCta{background:var(--gold-shine);-webkit-background-clip:text;background-clip:text;color:transparent}
 #promo .pCta:empty{display:none}
+/* promo B: little flat robot characters scattered inside the bar (never above it) */
+#lt{position:relative}
+body[data-centre="promo"] #lt{padding:0 36px 0 40px}
+#bots{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s linear}
+body.promoB[data-centre="promo"] #lt:not(.hide) #bots{opacity:1}
+#bots .bot{position:absolute;display:block;animation:bob 3.2s ease-in-out infinite alternate;transform-origin:50% 100%}
+#bots .bot svg{display:block;width:100%;height:100%;overflow:visible}
+#bots .bot .ey{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+@keyframes bob{0%{transform:translate3d(0,0,0) rotate(var(--r,0deg))}100%{transform:translate3d(0,-4px,0) rotate(calc(var(--r,0deg) * -1))}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.12)}}
 #lt.hide>.lyr{opacity:0;transition:opacity .4s}
 #lt .txt{min-width:0;width:100%}
 #lt .kicker{display:none;font:600 15px 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);margin-bottom:5px;min-height:18px}
@@ -163,7 +198,7 @@ body.nostores #kemu .stb{display:none}
 <div id="bbar">
   <div class="shine"></div>
   <div id="showlogo"><div class="kp"><img src="assets/kem_logo_ink.png" alt="kem" class="kpl"><span>PRESENTS</span></div><img src="assets/lb_stacked_ink.png" alt="The Late Block" class="wm"></div>
-  <div id="lt"><div class="lyr" id="promo"><div class="art"><video class="globe" id="globe" src="assets/kem_globe.webm" poster="assets/kem_globe.png" autoplay muted loop playsinline disablepictureinpicture></video><img class="card c1" src="assets/kem_card.png" alt=""><img class="card c2" src="assets/kem_card.png" alt=""><img class="card c3" src="assets/kem_card.png" alt="Kem Visa Signature card"></div><div class="pTxt"><div class="pHead" id="ph"></div><div class="pSub" id="ps"></div><div class="pCta" id="pc"></div></div></div><div class="lyr txt off"><div class="kicker" id="kicker"></div><div class="title" id="title"></div><div class="sub" id="sub"></div></div></div>
+  <div id="lt"><div class="lyr" id="promo"><div class="art"><canvas class="globe" id="globe" width="304" height="304"></canvas><div class="fan"><div class="card k1"><i class="slab z4"></i><i class="slab z3"></i><i class="slab z2"></i><i class="slab z1"></i><div class="face"><i class="sheen"></i></div></div><div class="card k2"><i class="slab z4"></i><i class="slab z3"></i><i class="slab z2"></i><i class="slab z1"></i><div class="face"><i class="sheen"></i></div></div><div class="card k3" role="img" aria-label="Kem Visa Signature card"><i class="slab z4"></i><i class="slab z3"></i><i class="slab z2"></i><i class="slab z1"></i><div class="face"><i class="sheen"></i></div></div></div></div><div class="pTxt"><div class="pHead" id="ph"></div><div class="pSub" id="ps"></div><div class="pCta" id="pc"></div></div></div><div class="lyr txt off"><div class="kicker" id="kicker"></div><div class="title" id="title"></div><div class="sub" id="sub"></div></div><div id="bots" aria-hidden="true"></div></div>
   <div id="kemu">
     <div class="grp"><div class="kc"><img src="assets/kem_logo_ink.png" alt="kem" class="kl"><div class="tg">Money moves where you do.</div></div>
       <div class="stb"><img src="assets/appstore_badge_black.svg" alt="Download on the App Store"><img src="assets/googleplay_badge.svg" alt="Get it on Google Play"></div></div>
@@ -388,17 +423,60 @@ function setTopic(t,sub,anim){
   },RM.matches?150:200);
 }
 /* ---- centre content: Kem Card promo (default) or topic ---- */
-// Edit the promo wording here, or override per show with ?promo=&promosub=&promocta= (empty value hides a line)
-const PROMO={head:'Get your AI travel card with Kem',sub:'Spend your USDT anywhere Visa is accepted.',cta:'Download Kem'};
+// v19: the promo rotates between these messages. Edit the wording here.
+// URL overrides: ?promo=&promosub=&promocta= (message A), ?promob=&promobsub=&promobcta= (message B); an empty value hides that line.
+//   ?promosec=60 rotation interval in seconds (0 = no rotation)   ?promopin=1|2 (or a|b) pins one message
+//   a custom ?promo= with no ?promob= shows only message A
+const PROMOS=[
+  {head:'Get your AI travel card with Kem',sub:'Spend your USDT and more, anywhere Visa is accepted.',cta:'Download Kem',bots:false},
+  {head:'Get up to 5% cashback on Grok Bot with Kem',sub:'Pay for Grok Bot with your Kem card.',cta:'Download Kem',bots:true}];
+const PROMO_SEC=60;   // default seconds per message
 const pv=(k,d)=>Q.has(k)?Q.get(k):d;
-$('ph').textContent=pv('promo',PROMO.head);$('ps').textContent=pv('promosub',PROMO.sub);$('pc').textContent=pv('promocta',PROMO.cta);
+PROMOS[0]={...PROMOS[0],head:pv('promo',PROMOS[0].head),sub:pv('promosub',PROMOS[0].sub),cta:pv('promocta',PROMOS[0].cta)};
+PROMOS[1]={...PROMOS[1],head:pv('promob',PROMOS[1].head),sub:pv('promobsub',PROMOS[1].sub),cta:pv('promobcta',PROMOS[1].cta)};
+const pinQ=(Q.get('promopin')||'').toLowerCase();
+let promoPin=pinQ==='1'||pinQ==='a'?0:pinQ==='2'||pinQ==='b'?1:(Q.has('promo')&&!Q.has('promob')?0:-1);
+const promoSec=Q.has('promosec')?Math.max(0,parseFloat(Q.get('promosec'))||0):PROMO_SEC;
+let promoIdx=promoPin>=0?promoPin:0,promoAt=Date.now(),promoTok=0;
+function putPromo(i){const p=PROMOS[i];$('ph').textContent=p.head;$('ps').textContent=p.sub;$('pc').textContent=p.cta;
+  document.body.classList.toggle('promoB',!!p.bots);$('promo').dataset.msg=i===1?'b':'a';fitPromo()}
+function showPromo(i,anim){
+  i=((i%PROMOS.length)+PROMOS.length)%PROMOS.length;promoAt=Date.now();if(i===promoIdx&&$('ph').textContent)return;promoIdx=i;
+  const t=$('promo').querySelector('.pTxt'),tok=++promoTok;
+  if(!anim||document.hidden||centreNow!=='promo'){t.classList.remove('pout','ppre');putPromo(i);return}
+  t.classList.add('pout');
+  setTimeout(()=>{if(tok!==promoTok)return;putPromo(i);t.classList.remove('pout');t.classList.add('ppre');void t.offsetWidth;
+    requestAnimationFrame(()=>{if(tok===promoTok)t.classList.remove('ppre')})},RM.matches?150:420);
+}
 function fitPromo(){  // shrink the promo lines before they could ever need an ellipsis
   const fitOne=(e,v,f,min)=>{if(!e||!e.textContent)return;e.style.setProperty(v,f+'px');
     const w=()=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width};
     while(w()>e.clientWidth-2&&f>min){f-=0.5;e.style.setProperty(v,f+'px')}};
-  fitOne($('ph'),'--pf',40,28);fitOne($('ps'),'--psf',21,16);
+  fitOne($('ph'),'--pf',40,26);fitOne($('ps'),'--psf',21,16);
 }
-fitPromo();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitPromo);
+putPromo(promoIdx);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitPromo);
+setInterval(()=>{if(promoPin<0&&promoSec>0&&centreNow==='promo'&&!document.hidden&&Date.now()-promoAt>=promoSec*1000)showPromo(promoIdx+1,true)},500);
+// promo B characters: original flat 2D robots, built here so each one bobs and blinks on its own beat
+(function(){
+  const host=$('bots');if(!host)return;
+  const svg=(wave)=>'<svg viewBox="0 0 40 50" aria-hidden="true">'+
+    '<line x1="20" y1="9" x2="20" y2="3.5" stroke="var(--fg)" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="3.2" r="2.6" fill="#F5C542"/>'+
+    '<rect x="4" y="9" width="32" height="24" rx="9" fill="var(--fg)"/>'+
+    '<rect x="1.2" y="17" width="3.4" height="8" rx="1.7" fill="var(--fg)"/><rect x="35.4" y="17" width="3.4" height="8" rx="1.7" fill="var(--fg)"/>'+
+    '<rect x="8.5" y="14" width="23" height="14" rx="7" fill="var(--bg)"/>'+
+    '<rect class="ey" x="13" y="18" width="4.2" height="6" rx="2.1" fill="#F5C542"/><rect class="ey" x="22.8" y="18" width="4.2" height="6" rx="2.1" fill="#F5C542"/>'+
+    '<rect x="11" y="35" width="18" height="13" rx="5" fill="var(--fg)"/><circle cx="20" cy="41.5" r="2.4" fill="#F5C542"/>'+
+    (wave?'<rect x="30" y="31" width="4" height="11" rx="2" fill="var(--fg)" transform="rotate(-38 32 41)"/><rect x="6" y="36" width="4" height="9" rx="2" fill="var(--fg)"/>'
+         :'<rect x="6" y="36" width="4" height="9" rx="2" fill="var(--fg)"/><rect x="30" y="36" width="4" height="9" rx="2" fill="var(--fg)"/>')+'</svg>';
+  // [left px, top px, size px, tilt deg, waves] inside the centre panel; all within the 160px bar
+  const SPOTS=[[34,14,24,-8,0],[150,10,22,6,1],[262,118,26,-5,0],[-30,112,30,6,1],[-110,120,24,-6,0],[-200,114,28,5,0],[-290,124,22,-7,0]];
+  SPOTS.forEach((s,i)=>{const b=document.createElement('i');b.className='bot';b.innerHTML=svg(!!s[4]);
+    b.style.width=s[2]+'px';b.style.height=(s[2]*1.25)+'px';b.style.top=s[1]+'px';
+    if(s[0]<0)b.style.right=(-s[0])+'px';else b.style.left=s[0]+'px';
+    b.style.setProperty('--r',s[3]+'deg');b.style.animationDelay=(-i*0.73)+'s';b.style.animationDuration=(2.6+(i%3)*0.5)+'s';
+    b.querySelectorAll('.ey').forEach(e=>{e.style.animationDelay=(-i*1.37)+'s';e.style.animationDuration=(4.2+(i%4)*0.6)+'s'});
+    host.appendChild(b)});
+})();
 const URL_CENTRE=/^(topic|promo)$/.test(Q.get('centre')||Q.get('center')||'')?(Q.get('centre')||Q.get('center')):'';
 let centreNow='promo';
 function setCentre(c,anim){
@@ -415,11 +493,63 @@ function setCentre(c,anim){
       setTimeout(()=>{if(tok===centreTok)to.classList.remove('inn')},400)})},RM.matches?150:200);
 }
 document.body.dataset.centre='promo';
-// globe: slow rotating transparent video; static high-res PNG if video can't play, ?globe=0, or reduced motion
-(function(){const g=$('globe');const still=()=>{const i=document.createElement('img');i.className='globe';i.id='globe';i.alt='';i.src='assets/kem_globe.png';g.replaceWith(i)};
-  if(Q.get('globe')==='0'||RM.matches){still();return}
-  g.addEventListener('error',still,true);const p=g.play&&g.play();if(p&&p.catch)p.catch(()=>{});
-  setTimeout(()=>{if(g.isConnected&&(g.error||g.readyState===0&&g.networkState===3))still()},4000);})();
+// globe (v19): a real Earth (NASA Blue Marble, public domain) rendered on a transparent canvas: slow spin,
+// day lighting with a soft terminator, ocean glint, and an atmosphere rim. Pure 2D canvas (no WebGL / CDN), ~30 fps,
+// pauses while hidden. ?globe=0 or reduced motion = still frame. If the texture can't be read, falls back to kem_globe.png.
+(function(){
+  const cv=$('globe');if(!cv||!cv.getContext)return;
+  const still=Q.get('globe')==='0'||RM.matches;
+  const fallback=()=>{const i=document.createElement('img');i.className='globe';i.id='globe';i.alt='';i.src='assets/kem_globe.png';cv.replaceWith(i)};
+  const load=src=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});
+  Promise.all([load('assets/earth_day.jpg'),load('assets/earth_water.png')]).then(([day,wat])=>{
+    const TW=1024,TH=512;
+    const rd=img=>{const c=document.createElement('canvas');c.width=TW;c.height=TH;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,TW,TH);return x.getImageData(0,0,TW,TH).data};
+    let D,W;try{D=rd(day);W=rd(wat)}catch(e){fallback();return}
+    const S=cv.width,ctx=cv.getContext('2d'),R=S*0.425,C=S/2;
+    // precompute per-pixel sphere geometry (view space -> lat/lon with axial tilt)
+    const L=[-0.58,0.42,0.70],ln=Math.hypot(...L);L[0]/=ln;L[1]/=ln;L[2]/=ln;
+    const H=[L[0],L[1],L[2]+1],hn=Math.hypot(...H);H[0]/=hn;H[1]/=hn;H[2]/=hn;
+    const tz=-23.4*Math.PI/180,tx=18*Math.PI/180,cz=Math.cos(tz),sz=Math.sin(tz),cx=Math.cos(tx),sx=Math.sin(tx);
+    const idx=[],U=[],V=[],DIF=[],SPC=[],RIM=[],AL=[];
+    for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+      const nx=(x+.5-C)/R,ny=-(y+.5-C)/R,d=Math.hypot(nx,ny);if(d>1+1/R)continue;
+      const dd=Math.min(d,1),nz=Math.sqrt(Math.max(0,1-dd*dd)),k=d>0?dd/d:0,X=nx*k,Y=ny*k;
+      // undo the tilt: rotate about view z (axial tilt), then about x (show a bit of the north)
+      let wx=X*cz+Y*sz,wy=-X*sz+Y*cz,wz=nz;const y2=wy*cx-wz*sx,z2=wy*sx+wz*cx;wy=y2;wz=z2;
+      const lat=Math.asin(Math.max(-1,Math.min(1,wy))),lon=Math.atan2(wx,wz);
+      const nl=X*L[0]+Y*L[1]+nz*L[2],nh=Math.max(0,X*H[0]+Y*H[1]+nz*H[2]);
+      idx.push((y*S+x)*4);U.push((lon/(2*Math.PI)+.5)*TW);V.push(Math.min(TH-1,Math.max(0,Math.floor((.5-lat/Math.PI)*TH))));
+      DIF.push(Math.max(0,Math.min(1,(nl+.18)/1.05)));SPC.push(Math.pow(nh,60)*0.55+Math.pow(nh,10)*0.06);RIM.push(Math.pow(1-nz,2.2));
+      AL.push(Math.max(0,Math.min(1,(1-d)*R+.5)));
+    }
+    const N=idx.length,img=ctx.createImageData(S,S),P=img.data;
+    const halo=()=>{ctx.globalCompositeOperation='destination-over';
+      const g=ctx.createRadialGradient(C-R*.12,C-R*.1,R*.94,C,C,R*1.16);
+      g.addColorStop(0,'rgba(120,180,255,.55)');g.addColorStop(.35,'rgba(90,150,255,.22)');g.addColorStop(1,'rgba(80,140,255,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(C,C,R*1.17,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over'};
+    let rot=TW*0.12;   // start over Africa / Middle East (Kuwait side)
+    const draw=()=>{
+      const o=rot;
+      for(let i=0;i<N;i++){
+        let u=U[i]+o;u-=Math.floor(u/TW)*TW;const u0=u|0,f=u-u0,u1=(u0+1)%TW,row=V[i]*TW,a=(row+u0)*4,b=(row+u1)*4;
+        const r=D[a]+(D[b]-D[a])*f,g=D[a+1]+(D[b+1]-D[a+1])*f,bl=D[a+2]+(D[b+2]-D[a+2])*f,w=(W[a]+(W[b]-W[a])*f)/255;
+        const df=DIF[i],lit=.05+df*1.18,sp=SPC[i]*(.25+w*.75)*255*df,rm=RIM[i];
+        // lift Blue Marble's very dark ocean to a deeper, natural blue
+        let R0=(r+w*3)*lit+sp,G0=(g+w*25)*lit+sp,B0=(bl+w*30)*lit+sp*.95;
+        const ra=rm*(.2+.8*df)*.7;R0+=(120-R0)*ra;G0+=(175-G0)*ra;B0+=(245-B0)*ra;
+        const p=idx[i];P[p]=R0>255?255:R0;P[p+1]=G0>255?255:G0;P[p+2]=B0>255?255:B0;P[p+3]=AL[i]*255;
+      }
+      ctx.putImageData(img,0,0);halo();
+    };
+    draw();cv.dataset.ready='1';
+    if(still)return;
+    let last=0;const SPEED=TW/120;   // one turn every 2 minutes
+    const loop=t=>{requestAnimationFrame(loop);if(document.hidden||t-last<33)return;
+      const dt=last?Math.min(.1,(t-last)/1000):0;last=t;
+      if(document.body.dataset.centre!=='promo'||$('lt').classList.contains('hide'))return;rot+=SPEED*dt;draw()};
+    requestAnimationFrame(loop);
+  }).catch(fallback);
+})();
 function apply(s,anim){
   if(!s)return;
   cur=s;
@@ -513,7 +643,7 @@ if(Q.get('remote')!=='0'){
   window.addEventListener('online',()=>{tries=0;RS.reconnects++;pollAll();open()});
   setInterval(pollAll,60000);   // safety net
 }
-window.kemOverlay={apply,resolve,state:()=>cur,cache:()=>cache,tick,centre:()=>centreNow};
+window.kemOverlay={apply,resolve,state:()=>cur,cache:()=>cache,tick,centre:()=>centreNow,promo:()=>promoIdx,showPromo:i=>showPromo(i,true),PROMOS};
 })();
 </script>
 </body></html>
