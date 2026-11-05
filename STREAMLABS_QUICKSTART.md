@@ -1,9 +1,9 @@
 # The Late Block on X: Streamlabs quick start
 
-You need: the overlay folder (`late_block_site_v19.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
+You need: the overlay folder (`late_block_site_v24.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
 
 ## 1. Unzip
-Unzip `late_block_site_v19.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
+Unzip `late_block_site_v24.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
 
 ## 2. Add the overlay
 1. In your scene, click **+** under Sources, then choose **Browser Source** and name it "Late Block overlay".
@@ -32,7 +32,7 @@ Dark bars are the default. To add options like the white look (section 6) while 
 - The control page talks to the overlay over a signed relay, so it works from any device with internet.
 
 ## 5. Centre of the bottom bar: Promo or Topic
-- By default, the centre shows the **Kem Card promo**: fanned 3D Kem cards and a slowly turning Earth. It switches every 60 seconds between "Get your AI travel card with Kem / Spend your USDT and more, anywhere Visa is accepted." and "Get up to 5% cashback on Grok Bot with Kem / Pay for Grok Bot with your Kem card." (with little robots). Both end with "Download Kem".
+- By default, the centre shows the **Kem Card promo** on a white panel: "Get your [Visa logo] AI Card with Kem / Pay for Grok Bot with your Kem card and earn up to 5% back. / Download Today", with a black metal Kem card and the Grok Bot characters around it. It doesn't rotate unless you add a second promo with `promob=` in the link.
 - At the top of the control page, tap **Promo (Kem Card)** or **Topic** to switch. It slides smoothly between the two.
 - Tapping **Go**, **Next** or **Prev** on a topic switches the centre to Topic automatically. Tap **Promo** to bring the card back.
 - To change the promo wording for a show, add it to the overlay link: `promo=Headline`, `promosub=Support line`, `promocta=Call to action` (leave one empty to hide that line). Message B: `promob=`, `promobsub=`, `promobcta=`. `promosec=30` changes the interval, `promopin=1` or `promopin=2` holds one message.
@@ -48,7 +48,7 @@ Dark bars are the default. To add options like the white look (section 6) while 
 
 ## 7. Options you can add to the overlay link
 Add these after `overlay.html` with `?` for the first and `&` between them, e.g. `overlay.html?theme=light&stores=0`.
-- `centre=topic` or `centre=promo` lock the centre (the control page can't switch it while this is in the link) · `globe=0` still globe
+- `centre=topic` or `centre=promo` lock the centre (the control page can't switch it while this is in the link) · (globe switched off in v21)
 - `theme=light` white bars · `theme=dark` force dark
 - `tether=0` hide Powered by Tether · `xbadge=0` hide the "Streaming exclusively on X" block
 - `logo=0` hide the Late Block logo · `stores=0` hide the store badges · `ig=@handle` change the Instagram handle
