@@ -142,11 +142,11 @@ body.nologo #showlogo{display:none}
   background:linear-gradient(115deg,rgba(255,255,255,0) 18%,rgba(255,255,255,.10) 34%,rgba(255,255,255,.02) 46%,rgba(255,255,255,0) 60%,rgba(255,255,255,.06) 80%,rgba(255,255,255,0) 92%) 0 0/240% 100%;
   animation:gloss 10s ease-in-out infinite alternate}
 @keyframes gloss{0%{background-position:0% 0}100%{background-position:80% 0}}
-/* specular sweep: neutral silver, soft core + wide falloff, like a studio light passing over metal */
-#promo .sheen{position:absolute;z-index:3;top:-40%;bottom:-40%;left:-70%;width:70%;mix-blend-mode:screen;
-  background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(230,234,240,.06) 26%,rgba(255,255,255,.34) 43%,rgba(255,255,255,.75) 50%,rgba(255,255,255,.30) 57%,rgba(220,226,235,.06) 74%,rgba(255,255,255,0) 100%);
-  transform:translate3d(0,0,0) skewX(-14deg);animation:sheen 7s cubic-bezier(.45,0,.25,1) infinite}
-@keyframes sheen{0%,50%{transform:translate3d(-20%,0,0) skewX(-14deg)}100%{transform:translate3d(400%,0,0) skewX(-14deg)}}
+/* v25: soft specular bloom (no band): a wide diffuse radial highlight, low opacity, that drifts part-way across the card and breathes, 12 s ease-in-out */
+#promo .sheen{position:absolute;z-index:3;top:-30%;left:-10%;width:70%;height:160%;mix-blend-mode:screen;opacity:0;
+  background:radial-gradient(ellipse 50% 45% at 50% 50%,rgba(240,244,250,.20) 0%,rgba(230,234,242,.09) 45%,rgba(255,255,255,0) 100%);
+  transform:translate3d(0,0,0);animation:sheen 12s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes sheen{0%{transform:translate3d(-5%,0,0);opacity:0}30%{opacity:.75}55%{transform:translate3d(55%,0,0);opacity:.9}80%{opacity:.35}100%{transform:translate3d(-5%,0,0);opacity:0}}
 /* soft contact shadow on the white panel, breathing with the float */
 #promo .cshadow{position:absolute;left:52px;top:120px;width:228px;height:36px;border-radius:50%;
   background:radial-gradient(42% 22% at 50% 40%,rgba(0,0,0,.42),rgba(0,0,0,0) 100%),
@@ -177,12 +177,12 @@ body.light #promo .pHead .vis .vb,body:not(.light) #promo .pHead .vis .vw{displa
 #promo .pSub:empty{display:none}
 #promo .pCta{display:inline-block;margin-top:11px;font:700 16px/1 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);white-space:nowrap}
 /* v22: the CTA is polished metallic gold: a deep vertical gold gradient (a darker reflection line just under the middle),
-   plus a narrow bright glint that sweeps across every 4.5 s. Two background layers, clipped to the text */
+   v25: plus a very soft wide warm highlight that drifts slowly part-way over the letters (14 s, no line). Two background layers, clipped to the text */
 #promo .pCta{--cg:linear-gradient(180deg,#E9C35C 0%,#C8962A 40%,#E6BE57 52%,#B7841C 70%,#F0CF74 100%);
-  --cl:linear-gradient(105deg,rgba(255,255,255,0) 22%,rgba(255,250,232,.95) 50%,rgba(255,255,255,0) 78%);
-  background:var(--cl) -100% 0/36% 100% no-repeat,var(--cg) 0 0/100% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:ctaGlint 4.5s cubic-bezier(.45,0,.3,1) infinite}
-@keyframes ctaGlint{0%,62%{background-position:-100% 0,0 0}100%{background-position:200% 0,0 0}}
+  --cl:radial-gradient(ellipse 50% 90% at 50% 50%,rgba(255,248,225,.45) 0%,rgba(255,248,225,.18) 45%,rgba(255,255,255,0) 100%);
+  background:var(--cl) 15% 0/70% 100% no-repeat,var(--cg) 0 0/100% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:ctaShine 14s ease-in-out infinite alternate}
+@keyframes ctaShine{0%,20%{background-position:15% 0,0 0}100%{background-position:85% 0,0 0}}
 @media (prefers-reduced-motion:reduce){#promo .pCta{animation:none;background:var(--cg);-webkit-background-clip:text;background-clip:text}}
 #promo .pCta:empty{display:none}
 /* promo B (v20): the Grok Bot app characters (assets/grokbot/*.svg, easy to swap) replace the cards + globe */
@@ -195,8 +195,8 @@ body.light.promoW[data-centre="promo"] #lt:not(.hide){background:#0B0B0C}
 body.promoW:not(.light) #promo .pHead{color:#0B0B0C}
 body.promoW:not(.light) #promo .pSub{color:#4A4A52}
 body.promoW:not(.light) #promo .pCta,body.light:not(.promoW) #promo .pCta{--cg:linear-gradient(180deg,#C8952A 0%,#9A6A0C 38%,#6A4200 50%,#8E5E08 62%,#C08A20 86%,#9C6A0E 100%);
-  --cl:linear-gradient(105deg,rgba(224,169,46,0) 18%,#E9B84A 36%,#FFE9A8 47%,#FFF6D6 50%,#FFE9A8 53%,#E9B84A 64%,rgba(224,169,46,0) 82%);
-  filter:drop-shadow(0 .6px 0 rgba(84,52,0,.55))}   /* a crisp stamped edge keeps the letters legible on white while the glint passes */
+  --cl:radial-gradient(ellipse 50% 90% at 50% 50%,rgba(233,184,74,.55) 0%,rgba(224,169,46,.22) 50%,rgba(224,169,46,0) 100%);
+  filter:drop-shadow(0 .6px 0 rgba(84,52,0,.55))}   /* a crisp stamped edge keeps the letters legible on white while the soft shine drifts */
 body.light.promoW #promo .pHead{color:#FFFFFF}
 body.light.promoW #promo .pSub{color:#A1A1AA}
 

@@ -185,3 +185,8 @@ To rotate it: `node secrets/genkeys.mjs`, re-run the site build, redistribute bo
 - **App Store + Google Play** are back to a stacked pair at their original **42 px** height (as in v22), beside the Kem logo and "Money moves where you do."
 - **Instagram** is no longer a badge. It has its **own cell** at the far right, set off by a thin full-height divider like the other panels: the official Instagram gradient glyph (42 px), the handle in bold (**@kem**, 23 px, white; black in the light theme), and a muted **"on Instagram"** label under it. The handle still comes from `IG_HANDLE`, `?ig=` or the control page, and a long handle shrinks a little to fit.
 - To make room, the Kem unit is slightly tighter: logo 36 px (was 40), tagline 16 px (was 17), smaller gaps. The promo and left panels have slightly less side padding. The promo headline fits at about 35 px.
+
+## UPDATE v25 (Nov 4, 2026): softer, slower shine
+- Metal card: the hard specular band is gone. Now a wide, diffuse radial bloom (peak ~20% white, screen blend, max opacity .9 of that) drifts part-way across the card and fades in/out on a 12 s ease-in-out loop. The slow 10 s ambient gloss is unchanged.
+- DOWNLOAD TODAY: the 4.5 s narrow glint is replaced by a soft, wide radial warm highlight (~45-55% alpha, feathered) that drifts slowly from 15% to 85% across the text and back over 14 s (ease-in-out, alternate). No line crosses the text.
+- Grok Bots, layout, copy, Visa (solid blue), ticker and right side are unchanged.
