@@ -7,7 +7,9 @@
                &ticker=0 (hide ticker)  &lt=0 (hide topic)  &bar=0 (hide bottom bar)  &logo=0 (hide Late Block logo panel)  &tether=0 (hide the Powered by Tether tag, top left)  &frame=0 (no side gutters)
                &xbadge=0 (hide the Live on X pill, top right)  &clock=1 (show clock; off by default)  &pulse=0 (static LIVE dots)  &tz=Asia/Kuwait  &tzlabel=KWT (optional label; none by default)  &secs=1  &h24=1  &stores=0 (hide App Store / Google Play badges)  &preview=1 (test background)  &remote=0 (no ntfy remote)
   Topic set (v17): &t1=Title&s1=Subtitle ... &t4=&s4=  &slot=1..4  &auto=SECONDS (auto-rotate; 0/off by default)
-  Keys (when the source is focused via Interact, local only): 1-4 = slot, Right/N = next, Left/P = prev
+  Centre (v18): &centre=promo|topic  (promo = Kem Card panel, the default; a URL ?centre= overrides the control page)
+               &promo=Headline &promosub=Support line &promocta=Call to action  (empty value hides that line)  &globe=0 (static globe)
+  Keys (when the source is focused via Interact, local only): 1-4 = slot, Right/N = next, Left/P = prev (these show the topic), C = promo/topic
   Live control: open control.html (same OBS, as a Custom Browser Dock) — it talks to this page
   through BroadcastChannel('kem-overlay') + localStorage('kem_overlay_state').
 -->
@@ -96,9 +98,25 @@ body.nobar #bbar{transform:translateY(110%)}
 #showlogo .wm{height:92px;width:auto;display:block}
 body.nologo #showlogo{display:none}
 /* centre: topic gets the full height of the block */
-#lt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;padding:0 48px}
-#lt .txt{transition:opacity .4s}
-#lt.hide .txt{opacity:0}
+#lt{flex:1 1 auto;min-width:0;display:grid;grid-template:100%/100%;align-items:center;padding:0 48px;overflow:hidden}
+#lt>.lyr{grid-area:1/1;min-width:0}
+#lt>.lyr.off{visibility:hidden;opacity:0;pointer-events:none}
+/* v18 centre promo: Kem Card fan + globe (flat, no shadows) */
+#promo{display:flex;align-items:center;gap:34px;height:100%}
+#promo .art{position:relative;flex:0 0 auto;width:300px;height:160px}
+#promo .globe{position:absolute;left:4px;top:7px;width:146px;height:146px;display:block;object-fit:contain}
+#promo .card{position:absolute;width:154px;height:auto;display:block;transform-origin:22% 92%;backface-visibility:hidden}
+#promo .c1{left:108px;top:42px;transform:rotate(-16deg)}
+#promo .c2{left:124px;top:36px;transform:rotate(-5deg)}
+#promo .c3{left:138px;top:33px;transform:rotate(6deg)}
+#promo .pTxt{min-width:0;flex:1 1 auto}
+#promo .pHead{font-weight:700;font-size:var(--pf,40px);line-height:1.05;letter-spacing:-.03em;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#promo .pSub{font-weight:400;font-size:var(--psf,21px);line-height:1.3;letter-spacing:-.01em;color:var(--muted);margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#promo .pSub:empty{display:none}
+#promo .pCta{display:inline-block;margin-top:11px;font:700 16px/1 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);white-space:nowrap}
+body:not(.light) #promo .pCta{background:var(--gold-shine);-webkit-background-clip:text;background-clip:text;color:transparent}
+#promo .pCta:empty{display:none}
+#lt.hide>.lyr{opacity:0;transition:opacity .4s}
 #lt .txt{min-width:0;width:100%}
 #lt .kicker{display:none;font:600 15px 'KemInter',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-txt);margin-bottom:5px;min-height:18px}
 body:not(.light) #lt .kicker{color:#F5C542}
@@ -106,14 +124,14 @@ body:not(.light) #lt .kicker{color:#F5C542}
 #lt .sub{font-weight:400;font-size:24px;line-height:1.3;letter-spacing:-.01em;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #lt .sub:empty{display:none}
 /* topic swap (v17): old text slides up and out (200ms), new text rises in (340ms). transform/opacity only = GPU, 60fps */
-#lt .txt{will-change:transform,opacity}
-#lt .txt.out{transform:translate3d(0,-18px,0);opacity:0;transition:transform .2s cubic-bezier(.4,0,1,1),opacity .2s linear}
-#lt .txt.pre{transform:translate3d(0,22px,0);opacity:0;transition:none}
-#lt .txt.inn{transition:transform .34s cubic-bezier(0,0,.2,1),opacity .34s linear}
+#lt .lyr{will-change:transform,opacity}
+#lt .lyr.out{transform:translate3d(0,-18px,0);opacity:0;transition:transform .2s cubic-bezier(.4,0,1,1),opacity .2s linear}
+#lt .lyr.pre{transform:translate3d(0,22px,0);opacity:0;transition:none}
+#lt .lyr.inn{transition:transform .34s cubic-bezier(0,0,.2,1),opacity .34s linear}
 @media (prefers-reduced-motion:reduce){
-  #lt .txt.out{transform:none;transition:opacity .15s linear}
-  #lt .txt.pre{transform:none}
-  #lt .txt.inn{transition:opacity .15s linear}
+  #lt .lyr.out{transform:none;transition:opacity .15s linear}
+  #lt .lyr.pre{transform:none}
+  #lt .lyr.inn{transition:opacity .15s linear}
 }
 /* right: the Kem unit — logo + tagline + Instagram, with the official store badges beside them */
 #kemu{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:40px;padding:0 48px 0 44px;border-left:1px solid var(--line)}
@@ -145,7 +163,7 @@ body.nostores #kemu .stb{display:none}
 <div id="bbar">
   <div class="shine"></div>
   <div id="showlogo"><div class="kp"><img src="assets/kem_logo_ink.png" alt="kem" class="kpl"><span>PRESENTS</span></div><img src="assets/lb_stacked_ink.png" alt="The Late Block" class="wm"></div>
-  <div id="lt"><div class="txt"><div class="kicker" id="kicker"></div><div class="title" id="title"></div><div class="sub" id="sub"></div></div></div>
+  <div id="lt"><div class="lyr" id="promo"><div class="art"><video class="globe" id="globe" src="assets/kem_globe.webm" poster="assets/kem_globe.png" autoplay muted loop playsinline disablepictureinpicture></video><img class="card c1" src="assets/kem_card.png" alt=""><img class="card c2" src="assets/kem_card.png" alt=""><img class="card c3" src="assets/kem_card.png" alt="Kem Visa Signature card"></div><div class="pTxt"><div class="pHead" id="ph"></div><div class="pSub" id="ps"></div><div class="pCta" id="pc"></div></div></div><div class="lyr txt off"><div class="kicker" id="kicker"></div><div class="title" id="title"></div><div class="sub" id="sub"></div></div></div>
   <div id="kemu">
     <div class="grp"><div class="kc"><img src="assets/kem_logo_ink.png" alt="kem" class="kl"><div class="tg">Money moves where you do.</div></div>
       <div class="stb"><img src="assets/appstore_badge_black.svg" alt="Download on the App Store"><img src="assets/googleplay_badge.svg" alt="Get it on Google Play"></div></div>
@@ -355,13 +373,13 @@ function curSlot(s){
   return order[pos];
 }
 function resolve(s){const i=curSlot(s);if(i>=0){const x=s.set[i];return {topic:x.t||'',sub:x.s||'',i}}return {topic:s.topic||'',sub:s.sub||'',i:-1}}
-let cur=null, swapTok=0;
+let cur=null, swapTok=0, centreTok=0;
 function setTopic(t,sub,anim){
   const lt=$('lt'),txt=lt.querySelector('.txt');
   if($('title').textContent===t&&$('sub').textContent===sub){fitTitle();return}
   const tok=++swapTok;
   const put=()=>{$('title').textContent=t;$('sub').textContent=sub;fitTitle()};
-  if(!anim||lt.classList.contains('hide')||document.hidden){txt.classList.remove('out','pre','inn');put();return}
+  if(!anim||lt.classList.contains('hide')||document.hidden||txt.classList.contains('off')){if(!txt.classList.contains('off'))txt.classList.remove('out','pre','inn');put();return}
   txt.classList.remove('pre','inn');txt.classList.add('out');
   setTimeout(()=>{if(tok!==swapTok)return;
     put();txt.classList.remove('out');txt.classList.add('pre');void txt.offsetWidth;
@@ -369,14 +387,49 @@ function setTopic(t,sub,anim){
       setTimeout(()=>{if(tok===swapTok)txt.classList.remove('inn')},400)});
   },RM.matches?150:200);
 }
+/* ---- centre content: Kem Card promo (default) or topic ---- */
+// Edit the promo wording here, or override per show with ?promo=&promosub=&promocta= (empty value hides a line)
+const PROMO={head:'Get your AI travel card with Kem',sub:'Spend your USDT anywhere Visa is accepted.',cta:'Download Kem'};
+const pv=(k,d)=>Q.has(k)?Q.get(k):d;
+$('ph').textContent=pv('promo',PROMO.head);$('ps').textContent=pv('promosub',PROMO.sub);$('pc').textContent=pv('promocta',PROMO.cta);
+function fitPromo(){  // shrink the promo lines before they could ever need an ellipsis
+  const fitOne=(e,v,f,min)=>{if(!e||!e.textContent)return;e.style.setProperty(v,f+'px');
+    const w=()=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width};
+    while(w()>e.clientWidth-2&&f>min){f-=0.5;e.style.setProperty(v,f+'px')}};
+  fitOne($('ph'),'--pf',40,28);fitOne($('ps'),'--psf',21,16);
+}
+fitPromo();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitPromo);
+const URL_CENTRE=/^(topic|promo)$/.test(Q.get('centre')||Q.get('center')||'')?(Q.get('centre')||Q.get('center')):'';
+let centreNow='promo';
+function setCentre(c,anim){
+  c=c==='topic'?'topic':'promo';if(c===centreNow)return;
+  const lt=$('lt'),pr=$('promo'),tx=lt.querySelector('.txt');
+  const from=centreNow==='topic'?tx:pr,to=c==='topic'?tx:pr;centreNow=c;document.body.dataset.centre=c;
+  const tok=++centreTok;
+  const show=()=>{from.classList.remove('out','pre','inn');from.classList.add('off');to.classList.remove('off','out');
+    if(c==='topic')fitTitle();else fitPromo()};
+  if(!anim||lt.classList.contains('hide')||document.hidden){to.classList.remove('pre','inn');show();return}
+  from.classList.remove('pre','inn');from.classList.add('out');
+  setTimeout(()=>{if(tok!==centreTok)return;show();to.classList.add('pre');void to.offsetWidth;
+    requestAnimationFrame(()=>{if(tok!==centreTok)return;to.classList.remove('pre');to.classList.add('inn');
+      setTimeout(()=>{if(tok===centreTok)to.classList.remove('inn')},400)})},RM.matches?150:200);
+}
+document.body.dataset.centre='promo';
+// globe: slow rotating transparent video; static high-res PNG if video can't play, ?globe=0, or reduced motion
+(function(){const g=$('globe');const still=()=>{const i=document.createElement('img');i.className='globe';i.id='globe';i.alt='';i.src='assets/kem_globe.png';g.replaceWith(i)};
+  if(Q.get('globe')==='0'||RM.matches){still();return}
+  g.addEventListener('error',still,true);const p=g.play&&g.play();if(p&&p.catch)p.catch(()=>{});
+  setTimeout(()=>{if(g.isConnected&&(g.error||g.readyState===0&&g.networkState===3))still()},4000);})();
 function apply(s,anim){
   if(!s)return;
   cur=s;
   const lt=$('lt');const r=resolve(s);
   $('kicker').textContent='';
-  const showLT=s.lt!==false&&!!(r.topic||r.sub);
+  const centre=URL_CENTRE||(s.centre==='topic'?'topic':'promo');
+  const showLT=s.lt!==false&&(centre==='promo'||!!(r.topic||r.sub));
   lt.classList.toggle('hide',!showLT);
-  setTopic(r.topic,r.sub,anim);
+  setCentre(centre,anim&&showLT);
+  setTopic(r.topic,r.sub,anim&&centre==='topic');
   $('ticker').classList.toggle('hide',s.ticker===false);document.body.classList.toggle('notk',s.ticker===false);
   if(s.theme&&!Q.get('theme'))setTheme(s.theme);
   if(s.ig)document.getElementById('ighandle').textContent=s.ig;
@@ -392,11 +445,12 @@ setInterval(()=>{if(cur&&+cur.auto>0){const r=resolve(cur);if(r.topic!==$('title
 document.addEventListener('keydown',e=>{
   if(!cur||!Array.isArray(cur.set))return;const order=[];cur.set.forEach((x,i)=>{if(x&&x.t)order.push(i)});if(!order.length)return;
   let i=curSlot(cur);let pos=Math.max(0,order.indexOf(i));
+  if(e.key==='c'||e.key==='C'){const s={...cur,centre:centreNow==='topic'?'promo':'topic',ts:Math.max(Date.now(),(cur.ts||0)+1)};try{localStorage.setItem(STATE_KEY,JSON.stringify(s))}catch(_){}apply(s,true);return}
   if(/^[1-4]$/.test(e.key)){const k=+e.key-1;if(!cur.set[k]||!cur.set[k].t)return;i=k}
   else if(e.key==='ArrowRight'||e.key==='n'||e.key==='N')i=order[(pos+1)%order.length];
   else if(e.key==='ArrowLeft'||e.key==='p'||e.key==='P')i=order[(pos-1+order.length)%order.length];
   else return;
-  const s={...cur,slot:i,lt:true,ts:Math.max(Date.now(),(cur.ts||0)+1)};
+  const s={...cur,slot:i,lt:true,centre:'topic',ts:Math.max(Date.now(),(cur.ts||0)+1)};
   try{localStorage.setItem(STATE_KEY,JSON.stringify(s))}catch(_){}
   apply(s,true);
 });
@@ -415,7 +469,7 @@ const hasUrlSet=urlSet.some(x=>x.t);
 const urlState={topic:Q.get('topic')||'',sub:Q.get('sub')||'',kicker:'',
   set:hasUrlSet?urlSet:SAMPLE_SET.map(x=>({...x})),slot:Q.has('topic')?-1:Math.min(3,Math.max(0,(parseInt(Q.get('slot'),10)||1)-1)),
   auto:Math.max(0,parseInt(Q.get('auto'),10)||0),ts:Date.now(),
-  lt:Q.get('lt')!=='0',ticker:Q.get('ticker')!=='0'};
+  lt:Q.get('lt')!=='0',ticker:Q.get('ticker')!=='0',centre:URL_CENTRE||(Q.has('topic')||hasUrlSet?'topic':'promo')};
 let saved=null;
 try{saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch(e){}
 // a URL with an explicit ?topic= or ?t1= wins over saved control state; otherwise resume last control state
@@ -459,7 +513,7 @@ if(Q.get('remote')!=='0'){
   window.addEventListener('online',()=>{tries=0;RS.reconnects++;pollAll();open()});
   setInterval(pollAll,60000);   // safety net
 }
-window.kemOverlay={apply,resolve,state:()=>cur,cache:()=>cache,tick};
+window.kemOverlay={apply,resolve,state:()=>cur,cache:()=>cache,tick,centre:()=>centreNow};
 })();
 </script>
 </body></html>

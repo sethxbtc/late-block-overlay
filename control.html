@@ -23,16 +23,21 @@ button.on{outline:2px solid #D9A84E}
 .hint{font-size:12px;opacity:.55;margin-top:6px}
 #status{font-size:12px;opacity:.65;margin-top:10px}
 hr{border:0;border-top:1px solid #2c2925;margin:14px 0}
+#centreRow button.on{background:#F5C542;color:#0B0B0C;border-color:#F5C542;font-weight:700}
 </style></head><body>
 <h1>The Late Block on X: control</h1>
 <div id="lock"><label>Passcode</label><input id="pw" type="password" autocomplete="current-password"><div class="row"><button id="unlock" class="go">Unlock</button></div><div id="lockmsg" style="font-size:12px;opacity:.7;margin-top:6px"></div><hr></div>
 <div id="app" style="display:none">
 
-<label>Topic set (4 slots): tap <b>Go</b> to put one on stream</label>
+<label>Centre of the bottom bar</label>
+<div class="row" id="centreRow"><button id="cPromo">Promo (Kem Card)</button><button id="cTopic">Topic</button></div>
+<div class="hint" id="centreHint"></div>
+<hr>
+<label>Topic set (4 slots): tap <b>Go</b> to put one on stream (switches the centre to Topic)</label>
 <div id="slots"></div>
 <div class="row"><button id="prev">◀ Prev</button><button id="next" class="go">Next topic ▶</button><button id="saveSet">Save set</button></div>
 <div class="row" id="autoRow"><input type="checkbox" id="autoOn" style="width:auto"><label for="autoOn">Auto-rotate every</label><input type="number" id="autoSec" min="3" max="3600" value="90"><label>seconds</label></div>
-<div class="hint">Keys on a computer: 1–4 = Go, ← / → = Prev / Next, A = auto-rotate on/off.</div>
+<div class="hint">Keys on a computer: 1–4 = Go, ← / → = Prev / Next, A = auto-rotate on/off, C = Promo / Topic.</div>
 
 <hr>
 <label>One-off topic (outside the set)</label><input id="t" placeholder="e.g. Your money, on autopilot">
@@ -56,7 +61,7 @@ const SAMPLE_SET=[
   {t:'Spending abroad, without surprises',s:'Cards, currencies and fees: what to check before you travel'}];
 let SET; try{SET=JSON.parse(localStorage.getItem(SET_KEY)||'null')}catch(e){}
 if(!Array.isArray(SET)||SET.length!==4)SET=(state&&Array.isArray(state.set)&&state.set.length===4)?state.set:SAMPLE_SET.map(x=>({...x}));
-state=state||{topic:'',sub:'',kicker:'',lt:true,ticker:true,theme:'dark'};
+state=state||{topic:'',sub:'',kicker:'',lt:true,ticker:true,theme:'dark',centre:'promo'};
 if(!Array.isArray(state.set)){state.set=SET;state.slot=0;state.auto=0}
 
 function push(){
@@ -66,7 +71,7 @@ function push(){
   remotePush();
   $('toggleLT').textContent=state.lt?'Hide topic':'Show topic';
   $('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
-  const c=curSlot(state);$('status').textContent='Sent '+new Date().toLocaleTimeString()+': "'+(c>=0?SET[c].t:(state.topic||''))+'"'+(+state.auto>0?' · auto every '+state.auto+'s':'');
+  const c=curSlot(state);$('status').textContent='Sent '+new Date().toLocaleTimeString()+': '+(state.centre==='topic'?'"'+(c>=0?SET[c].t:(state.topic||''))+'"':'Kem Card promo')+(+state.auto>0?' · auto every '+state.auto+'s':'');
 }
 // ---- topic set: same slot maths as the overlay, so both always agree on what's live
 function order(){const o=[];SET.forEach((x,i)=>{if(x&&x.t)o.push(i)});return o}
@@ -87,8 +92,8 @@ function drawSlots(){
 function markLive(){const c=curSlot(state);SET.forEach((_,i)=>{const d=$('slot'+(i+1));if(d)d.classList.toggle('live',i===c)})}
 setInterval(markLive,1000);
 function go(i){if(!SET[i]||!SET[i].t)return;
-  state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));state.slot=i;state.topic=SET[i].t;state.sub=SET[i].s||'';state.kicker='';state.lt=true;
-  $('t').value='';$('s').value='';push();markLive()}
+  state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));state.slot=i;state.topic=SET[i].t;state.sub=SET[i].s||'';state.kicker='';state.lt=true;state.centre='topic';
+  $('t').value='';$('s').value='';push();markLive();syncCentre()}
 function step(d){const o=order();if(!o.length)return;let c=curSlot(state);let p=o.indexOf(c);if(p<0)p=d>0?-1:0;go(o[(p+d+o.length)%o.length])}
 $('next').onclick=()=>step(1); $('prev').onclick=()=>step(-1);
 $('saveSet').onclick=()=>{saveSet();state.set=SET.map(x=>({t:x.t||'',s:x.s||''}));if(state.slot>=0){const c=curSlot(state);state.slot=c>=0?c:0}push();$('status').textContent+=' · set saved'};
@@ -98,8 +103,13 @@ function setAuto(){const on=$('autoOn').checked,sec=Math.max(3,parseInt($('autoS
 $('autoOn').onchange=setAuto;$('autoSec').onchange=()=>{if($('autoOn').checked)setAuto()};
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;if($('app').style.display==='none')return;
   if(/^[1-4]$/.test(e.key))go(+e.key-1);else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1);
-  else if(e.key==='a'||e.key==='A'){$('autoOn').checked=!$('autoOn').checked;setAuto()}});
-$('send').onclick=()=>{state.topic=$('t').value;state.sub=$('s').value;state.kicker='';state.slot=-1;state.auto=0;$('autoOn').checked=false;state.lt=true;push();markLive()};
+  else if(e.key==='a'||e.key==='A'){$('autoOn').checked=!$('autoOn').checked;setAuto()}
+  else if(e.key==='c'||e.key==='C')setCentreMode(state.centre==='topic'?'promo':'topic')});
+$('send').onclick=()=>{state.topic=$('t').value;state.sub=$('s').value;state.kicker='';state.slot=-1;state.auto=0;$('autoOn').checked=false;state.lt=true;state.centre='topic';push();markLive();syncCentre()};
+function setCentreMode(c){state.centre=c==='topic'?'topic':'promo';if(state.centre==='topic')state.lt=true;push();syncCentre()}
+function syncCentre(){const c=state.centre==='topic'?'topic':'promo';$('cPromo').classList.toggle('on',c==='promo');$('cTopic').classList.toggle('on',c==='topic');
+  $('centreHint').textContent=c==='promo'?'On stream now: the Kem Card promo. Topics are ready but hidden.':'On stream now: the topic below. Tap Promo to bring the Kem Card back.'}
+$('cPromo').onclick=()=>setCentreMode('promo');$('cTopic').onclick=()=>setCentreMode('topic');
 $('toggleLT').onclick=()=>{state.lt=!state.lt;push()};
 $('toggleTk').onclick=()=>{state.ticker=!state.ticker;push()};
 $('toggleBar').onclick=()=>{state.bar=state.bar===false;push();$('toggleBar').textContent=state.bar===false?'Show bottom bar':'Hide bottom bar'};
@@ -110,7 +120,7 @@ $('toggleStores').onclick=()=>{state.stores=state.stores===false;push();$('toggl
 $('toggleLogo').onclick=()=>{state.logo=state.logo===false;push();$('toggleLogo').textContent=state.logo===false?'Show logo':'Hide logo'};
 $('ig').value=state.ig||'';
 function syncUI(){$('autoOn').checked=+state.auto>0;if(+state.auto>0)$('autoSec').value=state.auto;
-  $('toggleTheme').textContent='Theme: '+(state.theme||'dark');markLive()}
+  $('toggleTheme').textContent='Theme: '+(state.theme||'dark');markLive();syncCentre()}
 drawSlots();syncUI();
 $('toggleLT').textContent=state.lt?'Hide topic':'Show topic';
 $('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
@@ -137,7 +147,7 @@ async function pullLatest(){try{const t=await (await fetch(NT+'/json?poll=1&sinc
   if(Array.isArray(state.set)&&state.set.length===4){SET=state.set.map(x=>({t:x.t||'',s:x.s||''}));saveSet();drawSlots()}else{state.set=SET;if(!(state.slot>=0))state.slot=-1}
   syncUI();
   $('toggleLT').textContent=state.lt?'Hide topic':'Show topic';$('toggleTk').textContent=state.ticker?'Hide ticker':'Show ticker';
-  const c=curSlot(state);$('status').textContent='Live now: "'+(c>=0?SET[c].t:(state.topic||''))+'"'}}catch(e){}}
+  const c=curSlot(state);$('status').textContent='Live now: '+(state.centre==='topic'?'"'+(c>=0?SET[c].t:(state.topic||''))+'"':'Kem Card promo')}}catch(e){}}
 async function doUnlock(pw,remember){
   try{await unlock(pw);$('lock').style.display='none';$('app').style.display='';if(remember)localStorage.setItem('kem_pw',pw);pullLatest()}
   catch(e){$('lockmsg').textContent='Wrong passcode.';localStorage.removeItem('kem_pw')}}

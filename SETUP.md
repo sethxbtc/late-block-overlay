@@ -36,6 +36,7 @@ Files in this folder (copy the **whole folder** to the streaming computer, inclu
 The ticker refreshes every 60 seconds. If a price feed goes down or rate-limits (HTTP 429), it keeps showing the last good number (dimmed after 15 minutes without an update), never shows a broken value, and waits longer between retries (2, 4, 8 … up to 15 minutes) until the feed recovers. XAUT falls back to spot gold if CoinGecko is unavailable. Prices load fine when the overlay is opened as a local file (tested in Chrome without special flags) and from a URL.
 
 ## 4. Switch topics live (control page, v17)
+Centre of the bottom bar (v18): the **Kem Card promo** is the default. Tap **Promo (Kem Card) / Topic** at the top of the control page to switch (Go/Next/Prev switch to Topic by themselves).
 Using **Streamlabs Desktop**? Follow `STREAMLABS_QUICKSTART.md` instead of sections 1–3 for the overlay setup.
 1. Open `control.html` (same folder) in any browser, on any device with internet, and enter the passcode (it's in `secrets/passcode.txt` on the computer; never paste it in chat). In OBS you can also add it as a Custom Browser Dock.
 2. **Topic set:** 4 slots, each a title + subtitle, saved on that device. Tap **Go** on a slot to put it on stream, or use **Next ▶ / ◀ Prev**. The topic area animates: the old text slides up and out (0.2 s) and the new text rises in (0.34 s), flat, transform/opacity only. With "reduce motion" turned on it's a quick fade instead.
@@ -130,3 +131,10 @@ To rotate it: `node secrets/genkeys.mjs`, re-run the site build, redistribute bo
 - **Prices:** per-source backoff on errors/429, last good values kept (stored on the computer, so they show instantly after a reload).
 - **Local file vs URL:** all asset paths are relative, so both work. In Chrome, the live price and relay requests work from a local file. Streamlabs' built-in browser loads local files through its own internal address, which also allows these requests; it couldn't be tested here, so check the prices on first setup.
 - **Hosting:** a permanent hosted URL (needed to open the control page on a phone) still needs GitHub connected. The local file works today.
+
+## UPDATE v18 (Nov 4, 2026): Kem Card promo in the centre
+- The centre of the bottom bar now shows a **Kem Card promo** by default: three fanned Kem Visa Signature cards (cut out from the official card image, flat, thin edge highlight) in front of the Kem globe (a slowly turning transparent video, one turn per 50 s; a still PNG is used if video can't play, with `?globe=0`, or with reduce-motion on).
+- Wording: headline **"Get your AI travel card with Kem"**, support line **"Spend your USDT anywhere Visa is accepted."**, call to action **"DOWNLOAD KEM"** (gold). To change it permanently, edit `const PROMO={…}` in overlay.html. To change it per show, use `?promo=`, `?promosub=`, `?promocta=` (an empty value hides the line).
+- **Promo / Topic toggle** on the control page (signed over the relay like other commands; key C). `?centre=topic|promo` in the overlay link locks the centre and overrides the control page. A `?topic=` or `?t1=` link with no `?centre=` starts in Topic mode.
+- The switch animates the same way as a topic swap (out 0.2 s, in 0.34 s; a fade with reduce-motion on). The topic set, auto-rotate and keys work exactly as in v17. Auto-rotate keeps counting while the promo is showing.
+- Quality: every raster image is at least 2× its on-screen size (cards about 4.3×, globe 3×, Late Block logo 2.9×, Kem logos 6–10×); the rest are SVG. If it looks soft or cut off in Streamlabs, check that the canvas is 1920×1080 and the source isn't scaled (see the quickstart).
