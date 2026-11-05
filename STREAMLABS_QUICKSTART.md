@@ -1,9 +1,9 @@
 # The Late Block on X: Streamlabs quick start
 
-You need: the overlay folder (`late_block_site_v24.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
+You need: the overlay folder (`late_block_site_v26.zip`), Streamlabs Desktop, and a second screen for the control page (a laptop today; a phone once the hosted link is set up).
 
 ## 1. Unzip
-Unzip `late_block_site_v24.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
+Unzip `late_block_site_v26.zip` somewhere permanent, e.g. `Documents/LateBlock/`. Don't move or rename the folder after you add it to Streamlabs.
 
 ## 2. Add the overlay
 1. In your scene, click **+** under Sources, then choose **Browser Source** and name it "Late Block overlay".
@@ -11,7 +11,7 @@ Unzip `late_block_site_v24.zip` somewhere permanent, e.g. `Documents/LateBlock/`
    - **Local file (works today):** tick **Local File** and choose `overlay.html` from the unzipped folder.
    - **URL:** paste the hosted link instead. A permanent hosted link needs GitHub connected, which is still pending, so use Local file for now.
 3. Set **Width 1920**, **Height 1080**, and **FPS 60**.
-   Also check **Settings → Video**: Base (Canvas) Resolution **1920×1080**. If the canvas is smaller (e.g. 1280×720), the overlay gets cut off and looks soft.
+   Also check **Settings → Video**: Base (Canvas) **and** Output Resolution both **1920×1080**. If either is smaller (e.g. 1280×720), the overlay gets cut off and looks soft.
 4. Leave **Custom CSS** empty (delete anything in the box).
 5. Turn **OFF** "Shutdown source when not visible".
 6. Turn **OFF** "Refresh browser when scene becomes active".
@@ -68,3 +68,6 @@ Add these after `overlay.html` with `?` for the first and `&` between them, e.g.
 - **Globe not turning:** it falls back to a still picture if the Earth image can't load. Everything else works the same.
 - **Overlay is white:** tap **Theme** on the control page, or add `?theme=dark`.
 - **Guest video peeks out at the edges:** re-check the Meet source's position and size (12, 69 / 1896 × 848).
+
+## BRB / GTA6IRL screen
+Add a second Browser Source named e.g. "GTA6IRL BRB", point it at `brb.html` (same folder) or the hosted `/brb.html` URL, Width **1920**, Height **1080**, FPS 30+, Custom CSS empty. Turn it on when you step away; leave the Late Block overlay source as-is.

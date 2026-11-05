@@ -4,11 +4,14 @@
 @font-face{font-family:'Inter';src:url('assets/brb/Inter.ttf') format('truetype');font-weight:100 900}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1920px;height:1080px;overflow:hidden;background:#1a0b25}
-body{font-family:'Inter',system-ui,sans-serif;color:#fff;position:relative}
+body{font-family:'Inter',system-ui,sans-serif;color:#fff;position:relative;-webkit-font-smoothing:antialiased}
+img{image-rendering:auto;-ms-interpolation-mode:bicubic}
+img[src$=".svg"],svg{shape-rendering:geometricPrecision}
+/* Miami source is 3840×1280 (Lanczos from 1500×500). Pan a 3240×1080 window; keep max scale modest so it stays crisp. */
 .bg{position:absolute;top:0;left:0;width:3240px;height:1080px;
-  background:url('assets/brb/miami_1500x500.png') center/cover no-repeat;
-  transform-origin:50% 60%;animation:drift 60s ease-in-out infinite alternate;will-change:transform}
-@keyframes drift{0%{transform:translate3d(-240px,0,0) scale(1.04)}100%{transform:translate3d(-1080px,-20px,0) scale(1.10)}}
+  background:url('assets/brb/miami_bg_2k.jpg') center/cover no-repeat;
+  image-rendering:auto;transform-origin:50% 60%;animation:drift 60s ease-in-out infinite alternate;will-change:transform}
+@keyframes drift{0%{transform:translate3d(-240px,0,0) scale(1.02)}100%{transform:translate3d(-1080px,-16px,0) scale(1.06)}}
 .scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,146,20,.62) 0%,rgba(255,92,95,.60) 36%,rgba(247,57,120,.62) 50%,rgba(192,42,186,.62) 78%,rgba(140,45,230,.66) 100%)}
 .vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 40%,rgba(20,0,30,.45) 100%)}
 .sun{position:absolute;inset:-20%;background:radial-gradient(circle at 30% 20%,rgba(255,230,160,.35),rgba(255,230,160,0) 45%);

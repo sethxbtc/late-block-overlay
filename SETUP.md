@@ -190,3 +190,15 @@ To rotate it: `node secrets/genkeys.mjs`, re-run the site build, redistribute bo
 - Metal card: the hard specular band is gone. Now a wide, diffuse radial bloom (peak ~20% white, screen blend, max opacity .9 of that) drifts part-way across the card and fades in/out on a 12 s ease-in-out loop. The slow 10 s ambient gloss is unchanged.
 - DOWNLOAD TODAY: the 4.5 s narrow glint is replaced by a soft, wide radial warm highlight (~45-55% alpha, feathered) that drifts slowly from 15% to 85% across the text and back over 14 s (ease-in-out, alternate). No line crosses the text.
 - Grok Bots, layout, copy, Visa (solid blue), ticker and right side are unchanged.
+
+## UPDATE v26 (Nov 5, 2026): crispness at 1920×1080
+- Both `overlay.html` and `brb.html` stay locked to **1920×1080**. Photos use `image-rendering: auto`; SVGs use `shape-rendering: geometricPrecision`.
+- **GTA6IRL BRB (`brb.html`):** Miami background was a 1500×500 banner stretched across a 3240×1080 pan (plus scale up to 1.10), which looked soft. It now uses `assets/brb/miami_bg_2k.jpg` (3840×1280, Lanczos upscale from the same source with a light unsharp). Drift scale is capped at 1.06. The GTA6IRL logo is the full **4673×1107** PNG (was 1600×379). `brb_title.png` and `money.png` were re-rendered from Pricedown at **2× / 3×** their on-screen size. Platform marks stay SVG.
+- **Late Block overlay:** raster assets were already ≥2× on-screen (metal card, Late Block lockup, Kem logos); store badges, Visa, Instagram, Tether, X and the Grok Bots are SVG. This pass only adds the rendering CSS so Streamlabs doesn't soften them.
+- **Streamlabs (keep the overlay crisp):**
+  1. **Settings → Video:** Base (Canvas) **and** Output Resolution both **1920×1080**.
+  2. Browser Source: Width **1920**, Height **1080**, FPS **30+** (60 is fine).
+  3. **Custom CSS** empty.
+  4. **"Shutdown source when not visible"** **OFF** for the podcast overlay (keeps prices/bots warm).
+  5. Right-click → **Transform → Reset Transform** so nothing is scaled by the scene.
+  6. BRB screen: same 1920×1080 Browser Source pointing at `brb.html` (or the hosted `/brb.html` URL).

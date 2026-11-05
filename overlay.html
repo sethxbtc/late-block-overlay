@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <title>The Late Block on X Overlay</title>
 <!--
-  Kem livestream overlay — 1920x1080, transparent background (OBS Browser Source).
+  Kem livestream overlay — 1920x1080, transparent background (OBS Browser Source). v26: crispness pass (image-rendering, 2×+ rasters).
   URL params:  ?topic=Title&sub=Subtitle&kicker=Topic%201%20of%205  &ig=@handle  &theme=light (white bars; dark is default)
                &ticker=0 (hide ticker)  &lt=0 (hide topic)  &bar=0 (hide bottom bar)  &logo=0 (hide Late Block logo panel)  &tether=0 (hide the Powered by Tether tag, top left)  &frame=0 (no side gutters)
                &xbadge=0 (hide the Live on X pill, top right)  &clock=1 (show clock; off by default)  &pulse=0 (static LIVE dots)  &tz=Asia/Kuwait  &tzlabel=KWT (optional label; none by default)  &secs=1  &h24=1  &stores=0 (hide App Store / Google Play badges)  &preview=1 (test background)  &remote=0 (no ntfy remote)
@@ -30,6 +30,9 @@ body.light{--bg:#FFFFFF; --fg:#0B0B0C; --muted:#46464F; --line:rgba(11,11,12,.10
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1920px;height:1080px;overflow:hidden;background:transparent}
 body{font-family:'KemInterTight','Inter Tight','KemInter','Inter',system-ui,sans-serif;color:var(--fg);position:relative;-webkit-font-smoothing:antialiased}
+/* Keep photos smooth and SVGs geometrically sharp at 1920×1080 */
+img{image-rendering:auto;-ms-interpolation-mode:bicubic}
+img[src$=".svg"],svg{shape-rendering:geometricPrecision}
 body.preview{background:#2b2a28}
 body.preview.bd{background:url(assets/preview_backdrop.jpg) center/cover}
 .ph{display:none}
